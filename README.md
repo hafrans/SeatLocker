@@ -1,7 +1,9 @@
 # Automatic Library Booking System for University of Jinan
 ---  
-[TOC]
-
+## Functions
+  * Automatic reserve seats
+  * Finding seat your like by command 'python seatLocker.py seat' and generate a configuration variable for your seat.
+  * You can develop your own script with the utility provided by seatLocker. You can follow the notes in seat/utility.py to get more details.
 ## Dependencies
   * Python 3.5+
 
@@ -12,6 +14,8 @@
   4. Just run "python seatLocker.py"
   > You can use crontab to make the script cycle execution.
 
-**Attentions:
+**Attentions**:
 *_This program is built for research and study, DO NOT use it for other propers of violation of library's regulations._*
+
+@tensorflower
   
