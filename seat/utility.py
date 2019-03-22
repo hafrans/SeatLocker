@@ -19,7 +19,8 @@ from datetime import date, timedelta, datetime, time as stime
 
 
 def log(entity, text):
-    print(datetime.today(), "线程：", threading.current_thread().getName(), "用户：", entity.user_config['username'], " ", text)
+    print(datetime.today(), "线程：", threading.current_thread().getName(),
+          "用户：", entity.user_config['username'], " ", text)
 
 
 class SeatUtility(object):
@@ -27,21 +28,22 @@ class SeatUtility(object):
       seat lock class
 
     """
-    __slots__ = "commands", "user_config", "base_url", "auth_url", "token", "islogin", "err_msg", "phone","opener","scookie"
+    __slots__ = "commands", "user_config", "base_url", "auth_url", "token", "islogin", "err_msg", "phone", "opener", "scookie"
 
     headers = {
-        "Host": "seat.ujn.edu.cn",
+        # "Host": "seat.ujn.edu.cn",
         "Connection": "Keep-Alive",
-        "User-Agent": "Are You Ok from Lei-Jun;"
+        "User-Agent": "",
+        "X-Forwarded-For": "10.167.149.241"
     }
-    cookie = None;
+    cookie = None
 
     def __init__(self, profile, phone=None, head_url="http://seat.ujn.edu.cn"):
-        self.scookie = http.cookiejar.MozillaCookieJar(filename="./"+profile['username']+"_cookie.dat")
-        self.scookie.save()
-        self.scookie.load(ignore_discard=True)
-        parser = urllib.request.HTTPCookieProcessor(cookiejar=self.scookie)
-        self.opener = urllib.request.build_opener(parser)
+        # self.scookie = http.cookiejar.MozillaCookieJar(filename="./"+profile['username']+"_cookie.dat")
+        # self.scookie.save()
+        # self.scookie.load(ignore_discard=True)
+        # parser = urllib.request.HTTPCookieProcessor()
+        self.opener = urllib.request.build_opener()
         # if os.path.exists("./"+profile['username']+".dat"):
         self.user_config = profile
         self.base_url = head_url + "/rest/v2"
@@ -55,9 +57,11 @@ class SeatUtility(object):
     def _merge(self, data):
         if self.token is not None and len(self.token) > 0:
             data['token'] = self.token
+            SeatUtility.headers['token'] = self.token
             return data
         else:
-            raise Exception(datetime.today(), "can not find a valid token while")
+            raise Exception(datetime.today(),
+                            "can not find a valid token while")
 
     def login(self):
         """
@@ -72,10 +76,11 @@ class SeatUtility(object):
             self.err_msg = e.__str__()
             return False
         if result.status == 200 and result.getheader("Content-Length") != "0":
-            self.scookie.save()
+            # self.scookie.save()
             data = json.load(result)
             if data['status'] == "success":
-                print(datetime.today(), "登录成功！", "用户：", self.user_config['username'], "token:", data['data']['token'])
+                print(datetime.today(), "登录成功！", "用户：",
+                      self.user_config['username'], "token:", data['data']['token'])
                 self.token = data['data']['token']
                 self.islogin = True
                 return False
@@ -182,7 +187,8 @@ class SeatUtility(object):
                 "code": "0"
             }
         """
-        request = urllib.request.Request(url=self.base_url + "/free/filters?token=" + self.token)
+        request = urllib.request.Request(
+            url=self.base_url + "/free/filters?token=" + self.token)
         try:
             result = self.opener.open(request)
         except Exception as e:
@@ -437,12 +443,14 @@ class SeatUtility(object):
         """
         if s_date is None:
             s_date = (datetime.today() + timedelta(days=1)).date().__str__()
-        if start_time < 720 and datetime(*[int(x) for x in s_date.split("-")]).date().weekday() == 1:  # 周二最多到12：00，下午闭馆
+        # 周二最多到12：00，下午闭馆
+        if start_time < 720 and datetime(*[int(x) for x in s_date.split("-")]).date().weekday() == 1:
             end_time = 720  # 最多约到12：00
-        if start_time >= 720 and end_time <= 960 and datetime(*[int(x) for x in s_date.split("-")]).date().weekday() == 1:  # 12-16 
-            return None;
+        # 12-16
+        if start_time >= 720 and end_time <= 960 and datetime(*[int(x) for x in s_date.split("-")]).date().weekday() == 1:
+            return None
         print(datetime.today(), "线程：【", threading.current_thread().getName(), "】", "用户：", self.user_config['username'],
-              "开始预订日期为", s_date, "座位id为", seat_id,"时间为：",start_time/60,"-",end_time/60, "的座位", file=sys.stderr)
+              "开始预订日期为", s_date, "座位id为", seat_id, "时间为：", start_time/60, "-", end_time/60, "的座位", file=sys.stderr)
         postForm = {
             'token': self.token,
             'startTime': start_time,
@@ -458,7 +466,7 @@ class SeatUtility(object):
         except Exception as e:
             self.err_msg = e.__str__()
             return False
-        self.scookie.save()
+        # self.scookie.save()
         if result.status == 200 and result.getheader("Content-Length") != "0":
             data = json.load(result)
             if data['status'] == 'success':
@@ -480,7 +488,7 @@ class SeatUtility(object):
                 """
                 str = """
                 预定成功：
-                id : {0} , 
+                id : {0} ,
                 日期：{1},
                 开始：{2}，结束{3}，
                 位置：{4}
@@ -495,5 +503,21 @@ class SeatUtility(object):
             self.err_msg = "网络异常"
             return False
 
-        def get_last_error():
-            return self.err_msg;
+    def get_last_error(self):
+        return self.err_msg
+
+    def library_check_in(self):
+        request = urllib.request.Request(
+            self.base_url + "/checkIn?token=" + self.token, headers=SeatUtility.headers)
+        try:
+            result = self.opener.open(request)
+        except Exception as e:
+            self.err_msg = e.__str__()
+            return False
+        if result.status == 200 and result.getheader("Content-Length") != 0:
+            print(bytes.decode(result.read()))
+        else:
+            print("False")
+        """
+            {"status":"success","data":{"id":5977245,"receipt":"4023-245-5","onDate":"2019 年 03 月 22 日","begin":"19 : 55","end":"20 : 55","location":"西校区3层303室区第二阅览室中区，座位号209"},"message":"成功登记入场","code":"0"}
+        """

@@ -15,7 +15,7 @@
   > You can use crontab to make the script cycle execution.
 
 ## FAQ
-   1. Another script which functions like this but reserving speed is faster than this script. I want to make it to reserve seat more quickly, what should I do?
+   1. Another script which functions like this but reserving speed is faster. I want to make it to reserve seat more quickly, what should I do?
    > This script uses a time.sleep to control reserving speed. **on line 137 in seatLocker.py**, You will find a time.sleep(3). It means after doing instructions above, it will sleep 3 seconds. Just change it. like 'time.sleep(1)' it allows float number like 0.5, but I do not recomment you to do that because if the script does poll very fast the server will deny script's access for safety.  
 
 
