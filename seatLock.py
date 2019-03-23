@@ -40,7 +40,7 @@ def thread_seat_lock(username, password, room_id=23, seat_id=8053, start_time=48
             date_time = (tod + timedelta(days=2)).date().__str__()  # 后天的，因为明天已经开抢了
         else:
             date_time = (tod + timedelta(days=1)).date().__str__()  # 明天的，因为今天抢明天的
-    person = SeatUtility({'username': username, 'password': password});
+    person = SeatUtility({'username': username, 'password': password})
 
     while person.login():
         log(person,person.err_msg)
@@ -50,7 +50,7 @@ def thread_seat_lock(username, password, room_id=23, seat_id=8053, start_time=48
         d = datetime(*tuple(map(lambda x:int(x),date_time.split('-'))),4,58,00)
         delta = (d - datetime.now()).seconds
         log(person,"开启静默抢座模式")
-        print ("程序将静待至{0}秒后运行".format(delta));
+        print ("程序将静待至{0}秒后运行".format(delta))
         time.sleep(delta)
     
     while person.login():
@@ -86,7 +86,7 @@ def thread_seat_lock(username, password, room_id=23, seat_id=8053, start_time=48
                 log(person, "密码鉴权失败，将重新登录")
                 person.login()
                 time.sleep(3)
-                retry_count += 1;
+                retry_count += 1
                 continue
             elif "维护" in person.err_msg:
                 log(person, "系统正在维护，请稍后登录")
@@ -151,11 +151,11 @@ if __name__ == '__main__':
 		print("座位id查询工具>>>")
 		user = input("请输入您的用户名: ")
 		pwd  = input("请输入{0}的密码: ".format(user))
-		person = SeatUtility({'username': user, 'password': pwd});
+		person = SeatUtility({'username': user, 'password': pwd})
 		if person.login():
 			print("该用户登陆失败，请检查用户名与密码是否正确！")
 			sys.exit(0)
-		school = int(input("请输入校区，1为东校区，2为西校区:"));
+		school = int(input("请输入校区，1为东校区，2为西校区:"))
 		school = school if school in (1,2) else 2
 		if(school is 1):
 			print("您选择的是东校区")
@@ -187,8 +187,8 @@ if __name__ == '__main__':
 	    	print("deploying ",k,"....")
 	    	tmpThread = threading.Thread(target=thread_seat_lock,args=v)
 	    	tmpThread.start()
-	    	time.sleep(1);
-	    print("All Deployed ?");
+	    	time.sleep(1)
+	    print("All Deployed ?")
 
 
 
