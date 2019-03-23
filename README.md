@@ -1,5 +1,14 @@
-# Automatic Library Booking System for University of Jinan
+# Automatic Library Booking System for University of Jinan V1.0
 ---  
+
+[🇨🇳 中文版](./README_Zh.md) | English
+
+> We Have Refactored all script of SeatUtility. We Will Release SeatClient very soon. After new release , the SeatUtility and it's automatic reserving script
+> will be deprecated and no longer receive any support.
+
+
+
+
 ## Functions
   * Automatic reserve seats
   * Finding seat your like by command 'python seatLocker.py seat' and generate a configuration variable for your seat.
@@ -16,7 +25,20 @@
 
 ## FAQ
    1. Another script which functions like this but reserving speed is faster. I want to make it to reserve seat more quickly, what should I do?
-   > This script uses a time.sleep to control reserving speed. **on line 137 in seatLocker.py**, You will find a time.sleep(3). It means after doing instructions above, it will sleep 3 seconds. Just change it. like 'time.sleep(1)' it allows float number like 0.5, but I do not recomment you to do that because if the script does poll very fast the server will deny script's access for safety.  
+   > This script uses a time.sleep to control reserving speed. **on line 137 in seatLocker.py**, You will find a time.sleep(3). It means after doing instructions above, it will sleep 3 seconds. Just change it. like 'time.sleep(1)' it allows float number like 0.5, but I do not recommend you to do that because if the script does poll very fast the server will deny script's access for safety.  
+
+## Logs
+
+#### Automatic Reserving Script
+ * 1.0.0 the script is finished.
+
+
+#### SeatUtilty
+ * 1.0.0 SeatUtilty is finished.
+
+
+
+
 
 
 **Attentions**:
