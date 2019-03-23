@@ -30,13 +30,17 @@ WEST_CAMPUS = "10.167.149.242"
     constants
 """
 
-AUTH = "AUTH"
-RESERVATIONS = "RESV"
-FREE_FILTER = "FFTR"
-ROOM_STAT = "RMST"
+AUTH                = "AUTH"
+RESERVATIONS        = "RESV"
+FREE_FILTER         = "FFTR"
+ROOM_STAT           = "RMST"
 ROOM_LAYOUT_BY_DATE = "LOBD"
 START_TIME_FOR_SEAT = "STFS"
-END_TIME_FOR_SEAT = "ETFS"
+END_TIME_FOR_SEAT   = "ETFS"
+FREE_BOOK           = "BOOK"
+CHECK_IN            = "CKIN"
+STOP                = "STOP"
+HISTORY             = "HSTY"
 
 
 class NetWorkException(Exception):
@@ -50,8 +54,28 @@ class SystemMaintenanceError(Exception):
 class UserCredentialError(Exception):
     pass
 
+
 class SeatReservationException(Exception):
-    pass
+
+    TIME_SPAN_ERROR = 0
+    HAVE_RESERVED = 1
+    FAILED_RESERVED = 2
+    NO_AVAILABLE_RESERVATIONS = 3
+    IP_NOT_ALLOWED = 4
+
+    def __init__(self,message,type = TIME_SPAN_ERROR):
+        self.type = type
+        self.message = message
+        super().__init__(message)
+    
+    def __eq__(self,type):
+        return self.type == type
+    
+    def getType(self):
+        return self.type
+    def __str__(self):
+        return "SeatServationExcetion: {0}, {1}".format(self.message,self.type)
+    
 
 
 class WrappedRequest(object):
@@ -70,7 +94,10 @@ class WrappedRequest(object):
         "LOBD": "/rest/v2/room/layoutByDate/{roomId}/{date}",
         "STFS": "/rest/v2/startTimesForSeat/{seatId}/{date}",
         "ETFS": "/rest/v2/endTimesForSeat/{seatId}/{date}/{startTime}",
-        "BOOK": "/rest/v2/freeBook"
+        "BOOK": "/rest/v2/freeBook",
+        "CKIN": "/rest/v2/checkIn",
+        "STOP": "/rest/v2/stop",
+        "HSTY": "/rest/v2/history/1/20"
     }
 
     __default_headers_template = {
@@ -223,15 +250,45 @@ class SeatClient(object):
     def checkStatus(self, result):
         if result['status'] == 'success' and result['code'] == '0':
             return True
+
         elif result['status'] == 'failed' and result['message'] == 'System Maintenance':
             logging.critical("目标系统正在维护 [%s] %s",
                              self.profile['username'], result)
             self.__last_error_message = result['message']
             raise SystemMaintenanceError(result['message'])
+
         elif result['code'] == '13':
             logging.warning("登录失败 [%s] %s", self.profile['username'], result)
             self.__last_error_message = result['message']
             raise UserCredentialError(result['message'])
+
+        elif result['code'] == '1':  # 错误有很多种类
+
+            if result['message'] == "预约失败，请尽快选择其他时段或座位":
+                logging.warning(
+                    "预约失败 [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.FAILED_RESERVED)
+
+            elif result['message'] == "已有1个有效预约，请在使用结束后再次进行选择":
+                logging.warning(
+                    "预约失败 [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.HAVE_RESERVED)
+
+            elif result['message'] == "当前没有可用预约":
+                logging.warning(
+                    "checkin失败！ [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.NO_AVAILABLE_RESERVATIONS)
+
+            elif result['message'] == "请连接此场馆无线网或在触屏机上操作":
+                logging.warning(
+                    "checkin失败！ [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.IP_NOT_ALLOWED)
+
+            else:
+                logging.warning(
+                    "参数错误 [%s] %s", self.profile['username'], result)
+                raise Exception("服务器传来错误 {0}".format(result['message']))
+            
         else:
             logging.critical(
                 "无法预料的错误 [%s] %s", self.profile['username'], result['message'])
@@ -485,7 +542,7 @@ class SeatClient(object):
         }
         try:
             result = self.opener.request(START_TIME_FOR_SEAT, payload=payload)
-            logging.info("get %s  %s",self.getSeatStartTimeWithSeatId, result)
+            logging.info("get %s  %s", self.getSeatStartTimeWithSeatId, result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())
             raise e
@@ -494,7 +551,8 @@ class SeatClient(object):
             raise e
 
         self.checkStatus(result)
-        logging.debug("get %s  %s",self.getSeatStartTimeWithSeatId, result['data']['startTimes'])
+        logging.debug("getstart %s %s %s", self.getSeatStartTimeWithSeatId,
+                      layoutDate, result['data']['startTimes'])
         return result['data']['startTimes']
 
     def getSeatEndTimeWithSeatId(self, seatId, startTime, layoutDate=None):
@@ -524,7 +582,7 @@ class SeatClient(object):
         }
         try:
             result = self.opener.request(END_TIME_FOR_SEAT, payload=payload)
-            logging.info("get %s  %s",self.getSeatEndTimeWithSeatId, result)
+            logging.info("get %s  %s", self.getSeatEndTimeWithSeatId, result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())
             raise e
@@ -533,10 +591,11 @@ class SeatClient(object):
             raise e
 
         self.checkStatus(result)
-        logging.debug("get %s  %s",self.getSeatEndTimeWithSeatId,result['data']['endTimes'])
+        logging.debug("get %s  %s", self.getSeatEndTimeWithSeatId,
+                      result['data']['endTimes'])
         return result['data']['endTimes']
-    
-    def reserveSeat(self,seatId,startTime = 480,endTime = 1320 ,layoutDate = None,tuesdayType=False):
+
+    def reserveSeat(self, seatId, startTime=480, endTime=1320, layoutDate=None, tuesdayType=False):
         """
            get Seat End Times with seat Id
 
@@ -550,25 +609,141 @@ class SeatClient(object):
             :param layoutDate: 要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天
             :param startTime: required start time of seat.
             :param endTime: required end time of seat
+            :param tuesdayType: 周二策略，如果为True，则周二会约 12 点之前的时间段，False为约16点之后的时间段
+
             Returns:
             时间序列 [{'id': '420', 'value': '07:00'}]等，如果为空，则当天无法预定
 
         """
         if layoutDate == None:
             layoutDate = str((datetime.today() + timedelta(days=1)).date())
-        result = None
+
+        # 判断用户预输入的时间的正确或错误
+        if startTime >= endTime:  # 判断初始时间是否合法
+            logging.error("初始结束时间不合法！%s [%s] ([%s] %s %s)", self.reserveSeat,
+                          self.profile['username'], layoutDate, startTime, endTime)
+            raise SeatReservationException("初始结束时间不合法！",SeatReservationException.TIME_SPAN_ERROR)
         # 判断周二策略
         if datetime(*[int(x) for x in layoutDate.split('-')]).weekday() == 1:
-            if tuesdayType == True: #执行上午策略
-                if startTime < 720 and endTime > 720:
+            logging.info("现在是周二")
+            if startTime >= 720 and endTime <= 960:
+                logging.error("周二无法在您规定时间段内预约座位 %s [%s] ([%s] %s %s)", self.reserveSeat,
+                              self.profile['username'], layoutDate, startTime, endTime)
+                raise SeatReservationException("周二无法在您规定时间段内预约座位！",SeatReservationException.TIME_SPAN_ERROR)
+            if tuesdayType == True:  # 执行上午策略
+                logging.info("执行上午策略")
+                if startTime < 720 and endTime >= 720:
                     endTime = 720
-    
+            else:  # 下午策略
+                logging.info("执行下午策略")
+                if startTime < 960 and endTime >= 960:
+                    startTime = 960
+            # 最终处理
+            if endTime > 720 and endTime < 960:
+                endTime = 720
+            if startTime > 720 and startTime < 960:
+                startTime = 960
 
+        if startTime >= endTime:  # 判断处理后的时间是否合法
+            logging.error("处理后初始结束时间不合法（2）！%s [%s] ([%s] %s %s)", self.reserveSeat,
+                          self.profile['username'], layoutDate, startTime, endTime)
+            raise SeatReservationException("初始结束时间不合法！",SeatReservationException.TIME_SPAN_ERROR)
+        logging.debug("最终时间 %s [%s] ([%s] %s %s)", self.reserveSeat,
+                      self.profile['username'], layoutDate, startTime, endTime)
+        postForm = {
+            'startTime': startTime,
+            'endTime': endTime,
+            'seat': seatId,
+            'date': layoutDate
+        }
+        result = None
+        try:
+            result = self.opener.request(FREE_BOOK, post=postForm)
+            logging.info("get %s  %s", self.reserveSeat, result)
+        except NetWorkException as e:
+            logging.warning("网络异常 %s", e.__str__())
+            raise e
+        except Exception as e:
+            logging.error("未知异常 %s", e.__str__())
+            raise e
+
+        self.checkStatus(result)
+        logging.debug("get %s  %s", self.reserveSeat, result['data'])
+        return result['data']
+    
+    def checkIn(self):
+        """
+           开始预约
+           注意：某些账户，进入图书馆不需要手动签到就可以自动签
+           要先通过getreservations获得status 是不是 RESERVE,或者CHECK_IN
+        """
+
+        """
+        两次获取，看看会不会自动签到
+        """
+        self.getReservations()
+        if self.getReservations()[0]['status'] == "CHECK_IN":
+            logging.info("已经实现自动签到 %s", self.checkIn)
+            return True
+
+        result = None
+        try:
+            result = self.opener.request(CHECK_IN)
+            logging.info("get %s  %s", self.checkIn, result)
+        except NetWorkException as e:
+            logging.warning("网络异常 %s", e.__str__())
+            raise e
+        except Exception as e:
+            logging.error("未知异常 %s", e.__str__())
+            raise e
+
+        self.checkStatus(result)
+        logging.debug("get %s  %s", self.checkIn, result['data'])
+        return result['data']
+    
+    def stop(self):
+        """
+            结束预约
+        """
+        result = None
+        try:
+            result = self.opener.request(CHECK_IN)
+            logging.info("get %s  %s", self.checkIn, result)
+        except NetWorkException as e:
+            logging.warning("网络异常 %s", e.__str__())
+            raise e
+        except Exception as e:
+            logging.error("未知异常 %s", e.__str__())
+            raise e
+
+        self.checkStatus(result)
+        logging.debug("get %s  %s", self.checkIn, result['data'])
+        return result['data']
+    
+    def getHistory(self):
+        result = None
+        try:
+            result = self.opener.request(HISTORY)
+            logging.info("get %s  %s", self.getHistory, result)
+        except NetWorkException as e:
+            logging.warning("网络异常 %s", e.__str__())
+            raise e
+        except Exception as e:
+            logging.error("未知异常 %s", e.__str__())
+            raise e
+
+        self.checkStatus(result)
+        logging.debug("get %s  %s", self.getHistory, result['data'])
+        return result['data']
         
+
 
 
 if __name__ == "__main__":
     p = SeatClient.NewClient("220151214023", "316781")
     p.getReservations()
-    p.getSeatStartTimeWithSeatId(8053)
-    p.getSeatEndTimeWithSeatId(8053, 500)
+    # p.getSeatStartTimeWithSeatId(8053, '2019-03-23')
+    # p.getSeatEndTimeWithSeatId(8053, 500)
+    #p.reserveSeat(8053, 480, 540, '2019-03-24')
+    # p.checkIn()
+    p.getHistory()
