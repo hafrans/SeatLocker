@@ -82,11 +82,11 @@ class SeatClient(object):
 
         if result['status'] == 'success' and result['code'] == '0':
             return True
-        elif result['status'] == 'failed' and result['message'] == 'System Maintenance':
+        elif result['status'] == 'fail' and result['message'] == 'System Maintenance':
             logging.critical("目标系统正在维护 [%s] %s",
                              self.profile['username'], result)
             self.__last_error_message = result['message']
-            raise SystemMaintenanceError(result['message'])
+            raise SystemMaintenanceError("目标系统正在维护 "+result['message'])
 
         elif result['code'] == '13':
             logging.warning("登录失败 [%s] %s", self.profile['username'], result)
