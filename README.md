@@ -6,7 +6,7 @@
 > We Have Refactored all script of SeatUtility. We Will Release SeatClient very soon. After new release , the SeatUtility and it's automatic reserving script
 > will be deprecated and no longer receive any support.
 
-### Try new features from seatclient in alpha
+### Try new features of seatclient in alpha
 just clone future branch and follow example in example.py
 ``` python
 from seat.__future__ import *
@@ -30,7 +30,7 @@ if __name__ == "__main__":
   * Very stable. it has been runing on a vps (1C512M) for 200 days and not crash.
   * if your seat was reserved by others, it will start random reserving mode.
   * You can use seatutility to build your own script.
-  
+
 ## Dependencies
   * Python 3.5+
 
