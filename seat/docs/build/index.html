@@ -1,0 +1,431 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Welcome to Seat Api’s documentation! &#8212; Seat Api 0.2.3 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-seat-api-s-documentation">
+<h1>Welcome to Seat Api’s documentation!<a class="headerlink" href="#welcome-to-seat-api-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>API
+(正在整理注释中…)
+===============================</p>
+<span class="target" id="module-seat.exception"></span><p>All Exceptions Are Here.</p>
+<dl class="exception">
+<dt id="seat.exception.NetWorkException">
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">NetWorkException</code><a class="reference internal" href="_modules/seat/exception.html#NetWorkException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.NetWorkException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="seat.exception.SeatReservationException">
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">SeatReservationException</code><span class="sig-paren">(</span><em>message</em>, <em>type=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/exception.html#SeatReservationException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.SeatReservationException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="seat.exception.SystemMaintenanceError">
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">SystemMaintenanceError</code><a class="reference internal" href="_modules/seat/exception.html#SystemMaintenanceError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.SystemMaintenanceError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="seat.exception.UserCredentialError">
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">UserCredentialError</code><a class="reference internal" href="_modules/seat/exception.html#UserCredentialError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.UserCredentialError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<span class="target" id="module-seat.utility"></span><p>Seat.ujn.edu.cn</p>
+<p>虚拟客户端</p>
+<p>&#64;author Tensor Flower &lt;<a class="reference external" href="mailto:3389&#37;&#52;&#48;protonmail&#46;ch">3389<span>&#64;</span>protonmail<span>&#46;</span>ch</a>&gt;
+&#64;copy right 2009 - 2018</p>
+<dl class="class">
+<dt id="seat.utility.SeatUtility">
+<em class="property">class </em><code class="descclassname">seat.utility.</code><code class="descname">SeatUtility</code><span class="sig-paren">(</span><em>profile</em>, <em>phone=None</em>, <em>head_url='http://seat.ujn.edu.cn'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility" title="Permalink to this definition">¶</a></dt>
+<dd><p>seat lock class</p>
+<dl class="method">
+<dt id="seat.utility.SeatUtility.book_seat">
+<code class="descname">book_seat</code><span class="sig-paren">(</span><em>seat_id=8053</em>, <em>s_date=None</em>, <em>start_time=480</em>, <em>end_time=1320</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.book_seat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.book_seat" title="Permalink to this definition">¶</a></dt>
+<dd><p>预订位置
+:param seat_id:座位id
+:param s_date: 预订日期，默认为明天
+:param start_time: 开始时间
+:param end_time: 结束时间
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.get_book_date_filters">
+<code class="descname">get_book_date_filters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.get_book_date_filters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.get_book_date_filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取可预约时间的列表
+:return: list 可预约时间fmt:2018-03-12</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.get_end_times">
+<code class="descname">get_end_times</code><span class="sig-paren">(</span><em>seat_id=8053</em>, <em>start_times=480</em>, <em>s_date=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.get_end_times"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.get_end_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取座位的结束时间
+:param seat_id: 座位id
+:param start_times: 座位开始时间
+:param s_date: 预订日期，默认是今天的下一天（明天）
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.get_free_room_list">
+<code class="descname">get_free_room_list</code><span class="sig-paren">(</span><em>schoolid=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.get_free_room_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.get_free_room_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取空闲信息以及可预订时间
+:param schoolid: 校区id，1：东校区，2：西校区
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.get_reserved_seats">
+<code class="descname">get_reserved_seats</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.get_reserved_seats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.get_reserved_seats" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取当前已预订的信息
+:return: Unit</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.get_room_seats_list">
+<code class="descname">get_room_seats_list</code><span class="sig-paren">(</span><em>room_id=23</em>, <em>s_date=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.get_room_seats_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.get_room_seats_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取房间内座位信息
+:param room_id: 房间id
+:param s_date: 预订时间；fmt:‘2018-01-01’
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.get_start_times">
+<code class="descname">get_start_times</code><span class="sig-paren">(</span><em>seat_id=8053</em>, <em>s_date=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.get_start_times"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.get_start_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取座位的可开始预约时间
+:param seat_id: 座位id
+:param s_date: 预约时间
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.utility.SeatUtility.login">
+<code class="descname">login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/utility.html#SeatUtility.login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.utility.SeatUtility.login" title="Permalink to this definition">¶</a></dt>
+<dd><p>用户登录
+:return:</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-seat.constant"></span><p>campus ID</p>
+<span class="target" id="module-seat.client"></span><p>Future Features of Seat Client</p>
+<dl class="class">
+<dt id="seat.client.SeatClient">
+<em class="property">class </em><code class="descclassname">seat.client.</code><code class="descname">SeatClient</code><span class="sig-paren">(</span><em>profile={'password'</em>, <em>'username'}</em>, <em>campus=2</em>, <em>autoLogin=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>seat client is a virual client api for seat reservation system of ujn.
+It provides lots of methods can book seat and check in</p>
+<dl class="method">
+<dt id="seat.client.SeatClient.checkIn">
+<code class="descname">checkIn</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.checkIn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.checkIn" title="Permalink to this definition">¶</a></dt>
+<dd><p>开始预约
+注意：某些账户，进入图书馆不需要手动签到就可以自动签
+要先通过getreservations获得status 是不是 RESERVE,或者CHECK_IN</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getHistory">
+<code class="descname">getHistory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getHistory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getHistory" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getReservationAvailableDates">
+<code class="descname">getReservationAvailableDates</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getReservationAvailableDates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getReservationAvailableDates" title="Permalink to this definition">¶</a></dt>
+<dd><p>get reservation available dates</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+<p>Param campus choose west or east campus using defined constant.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>list of dates like [‘2019-03-23’, ‘2019-03-24’]</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getReservations">
+<code class="descname">getReservations</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getReservations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getReservations" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Get a List of Your Reservations.</p>
+<dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+<dt>Returns: </dt>
+<dd>[{‘id’: 596777, ‘receipt’: ‘42as-6’, ‘onDate’: ‘2019-03-23’, ‘seatId’: 8035, ‘status’: ‘RESERVE’, ‘location’: ‘西校区7层703室区第六阅览室北区，座位号122’, ‘begin’: ‘09:00’, ‘end’: ‘22:00’, ‘actualBegin’: None, ‘awayBegin’: None, ‘awayEnd’: None, ‘userEnded’: False, ‘message’: ‘请在 03</dd>
+</dl>
+</div></blockquote>
+<p>月23日08点15分 至 09点15分 之间前往场馆签到’}]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getRoomStatus">
+<code class="descname">getRoomStatus</code><span class="sig-paren">(</span><em>campus=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getRoomStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getRoomStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>get all rooms status</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+<p>Param campus choose west or east campus using defined constant.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>list of room with infos. look at debug info
+{‘roomId’: 25, ‘room’: ‘第六阅览室南区’, ‘floor’: 7, ‘maxHour’: 15, ‘reserved’: 0, ‘inUse’: 100, ‘away’: 0, ‘totalSeats’: 108, ‘free’: 8}</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getSeatEndTimeWithSeatId">
+<code class="descname">getSeatEndTimeWithSeatId</code><span class="sig-paren">(</span><em>seatId</em>, <em>startTime</em>, <em>layoutDate=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getSeatEndTimeWithSeatId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getSeatEndTimeWithSeatId" title="Permalink to this definition">¶</a></dt>
+<dd><p>get Seat End Times with seat Id</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">param seatId:</th><td class="field-body">required. the id of room which you want to get seats’ status.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">param layoutDate:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param startTime:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">required start time of seat.</td>
+</tr>
+</tbody>
+</table>
+<p>Returns:
+时间序列 [{‘id’: ‘420’, ‘value’: ‘07:00’}]等，如果为空，则当天无法预定</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getSeatStartTimeWithSeatId">
+<code class="descname">getSeatStartTimeWithSeatId</code><span class="sig-paren">(</span><em>seatId</em>, <em>layoutDate=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getSeatStartTimeWithSeatId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getSeatStartTimeWithSeatId" title="Permalink to this definition">¶</a></dt>
+<dd><p>get Seat Start Times with seat Id</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">param seatId:</th><td class="field-body">required. the id of room which you want to get seats’ status.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">param layoutDate:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天</td>
+</tr>
+</tbody>
+</table>
+<p>Returns:
+时间序列[{‘id’: ‘420’, ‘value’: ‘07:00’}]等，如果为空，则当天无法预定</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.getSeatsInRoomWithRoomId">
+<code class="descname">getSeatsInRoomWithRoomId</code><span class="sig-paren">(</span><em>roomId</em>, <em>layoutDate=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getSeatsInRoomWithRoomId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getSeatsInRoomWithRoomId" title="Permalink to this definition">¶</a></dt>
+<dd><p>get all seats status with roomid</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+<p>Param roomId required. the id of room which you want to get seats’ status.
+:param layoutDate: 要预定的日期字符串，格式为 yyyy-mm-dd
+Returns:</p>
+<blockquote>
+<div>list of seats with infos. look at debug info</div></blockquote>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.login">
+<code class="descname">login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.login" title="Permalink to this definition">¶</a></dt>
+<dd><p>User Login</p>
+<dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.reserveSeat">
+<code class="descname">reserveSeat</code><span class="sig-paren">(</span><em>seatId</em>, <em>startTime=480</em>, <em>endTime=1320</em>, <em>layoutDate=None</em>, <em>tuesdayType=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.reserveSeat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.reserveSeat" title="Permalink to this definition">¶</a></dt>
+<dd><p>get Seat End Times with seat Id</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>:raise</dt>
+<dd>Exception Unknown Exception Raised By Urilib
+NetWorkException 其他状态导致的网络有问题，比如刷的太快
+UserCredientialError 用户登录失败或状态失败
+SystemMaintenanceError 系统维护导致失败</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">param seatId:</th><td class="field-body">required. the id of room which you want to get seats’ status.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">param layoutDate:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param startTime:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">required start time of seat.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">param endTime:</th><td class="field-body">required end time of seat</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">param tuesdayType:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">周二策略，如果为True，则周二会约 12 点之前的时间段，False为约16点之后的时间段</td>
+</tr>
+</tbody>
+</table>
+<p>Returns:
+时间序列 [{‘id’: ‘420’, ‘value’: ‘07:00’}]等，如果为空，则当天无法预定</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.stop">
+<code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>结束预约</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Seat Api</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, tensorflower.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
