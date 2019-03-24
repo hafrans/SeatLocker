@@ -1,0 +1,671 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>seat.client &#8212; Seat Api 0.2.3 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for seat.client</h1><div class="highlight"><pre>
+<span></span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Future Features of Seat Client</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">urllib.parse</span>
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">.exception</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.request</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.constant</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SeatClient&#39;</span><span class="p">]</span>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    constants</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">AUTH</span>                <span class="o">=</span> <span class="s2">&quot;AUTH&quot;</span>
+<span class="n">RESERVATIONS</span>        <span class="o">=</span> <span class="s2">&quot;RESV&quot;</span>
+<span class="n">FREE_FILTER</span>         <span class="o">=</span> <span class="s2">&quot;FFTR&quot;</span>
+<span class="n">ROOM_STAT</span>           <span class="o">=</span> <span class="s2">&quot;RMST&quot;</span>
+<span class="n">ROOM_LAYOUT_BY_DATE</span> <span class="o">=</span> <span class="s2">&quot;LOBD&quot;</span>
+<span class="n">START_TIME_FOR_SEAT</span> <span class="o">=</span> <span class="s2">&quot;STFS&quot;</span>
+<span class="n">END_TIME_FOR_SEAT</span>   <span class="o">=</span> <span class="s2">&quot;ETFS&quot;</span>
+<span class="n">FREE_BOOK</span>           <span class="o">=</span> <span class="s2">&quot;BOOK&quot;</span>
+<span class="n">CHECK_IN</span>            <span class="o">=</span> <span class="s2">&quot;CKIN&quot;</span>
+<span class="n">STOP</span>                <span class="o">=</span> <span class="s2">&quot;STOP&quot;</span>
+<span class="n">HISTORY</span>             <span class="o">=</span> <span class="s2">&quot;HSTY&quot;</span>
+
+
+
+<div class="viewcode-block" id="SeatClient"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient">[docs]</a><span class="k">class</span> <span class="nc">SeatClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SeatClient</span>
+<span class="sd">        seat client is a virual client api for seat reservation system of ujn.</span>
+<span class="sd">        It provides lots of methods can book seat and check in</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">NewClient</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SeatClient</span><span class="p">({</span><span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="n">password</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">},</span> <span class="n">campus</span><span class="o">=</span><span class="n">WEST_CAMPUS</span><span class="p">,</span> <span class="n">autoLogin</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            initialize instance of SeatClient.</span>
+<span class="sd">            :param profile user&#39;s profile</span>
+<span class="sd">            :param campus the user&#39;s region of campus </span>
+<span class="sd">            :param autoLogin bool auto login when initializing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">campus</span> <span class="o">==</span> <span class="n">WEST_CAMPUS</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是西校的配置进行登录 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">campus</span> <span class="o">==</span> <span class="n">EAST_CAMPUS</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是东校的配置进行登录 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是其他的配置进行登录 </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">campus</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span> <span class="o">=</span> <span class="n">WrappedRequest</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span> <span class="o">=</span> <span class="n">campus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">profile</span> <span class="o">=</span> <span class="n">profile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">autoLogin</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;开启了默认登录 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">getLastError</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span>
+
+    <span class="k">def</span> <span class="nf">checkStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;fail&#39;</span> <span class="ow">and</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;System Maintenance&#39;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;目标系统正在维护 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+            <span class="k">raise</span> <span class="n">SystemMaintenanceError</span><span class="p">(</span><span class="s2">&quot;目标系统正在维护 &quot;</span><span class="o">+</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;13&#39;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;登录失败 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+            <span class="k">raise</span> <span class="n">UserCredentialError</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>  <span class="c1"># 错误有很多种类</span>
+
+            <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;预约失败，请尽快选择其他时段或座位&quot;</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;预约失败 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">],</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">FAILED_RESERVED</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;已有1个有效预约，请在使用结束后再次进行选择&quot;</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;预约失败 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">],</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">HAVE_RESERVED</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;当前没有可用预约&quot;</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;checkin失败！ [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">],</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">NO_AVAILABLE_RESERVATIONS</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;请连接此场馆无线网或在触屏机上操作&quot;</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;checkin失败！ [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">],</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">IP_NOT_ALLOWED</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;参数错误 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;服务器传来错误 </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]))</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
+                <span class="s2">&quot;无法预料的错误 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown Error! </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">campus</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span>
+
+    <span class="nd">@campus</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">campus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">token</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span>
+
+    <span class="nd">@token</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">val</span>
+
+<div class="viewcode-block" id="SeatClient.login"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            User Login </span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+                <span class="n">AUTH</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">append_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+            <span class="c1"># 登录成功</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;登录成功 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;token&#39;</span><span class="p">])</span>
+            <span class="c1"># 保存用户token</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;token&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SeatClient.getReservations"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getReservations">[docs]</a>    <span class="k">def</span> <span class="nf">getReservations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Get a List of Your Reservations.</span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            Returns: </span>
+<span class="sd">                [{&#39;id&#39;: 596777, &#39;receipt&#39;: &#39;42as-6&#39;, &#39;onDate&#39;: &#39;2019-03-23&#39;, &#39;seatId&#39;: 8035, &#39;status&#39;: &#39;RESERVE&#39;, &#39;location&#39;: &#39;西校区7层703室区第六阅览室北区，座位号122&#39;, &#39;begin&#39;: &#39;09:00&#39;, &#39;end&#39;: &#39;22:00&#39;, &#39;actualBegin&#39;: None, &#39;awayBegin&#39;: None, &#39;awayEnd&#39;: None, &#39;userEnded&#39;: False, &#39;message&#39;: &#39;请在 03</span>
+<span class="sd">月23日08点15分 至 09点15分 之间前往场馆签到&#39;}]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">RESERVATIONS</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get reservations </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;获取了0条已预约的座位数据  [</span><span class="si">%s</span><span class="s2">] &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
+                <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+                <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;   </span>
+<span class="s2">                            卡号： </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">                            使用中的位置：</span><span class="si">{0}</span><span class="s2"></span>
+<span class="s2">                            状态：</span><span class="si">{1}</span><span class="s2">，日期：</span><span class="si">{2}</span><span class="s2">，</span>
+<span class="s2">                            开始：</span><span class="si">{3}</span><span class="s2">，结束：</span><span class="si">{4}</span><span class="s2">，</span>
+<span class="s2">                            提示：</span><span class="si">{5}</span><span class="s2"></span>
+<span class="s2">                    &quot;&quot;&quot;</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;location&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;onDate&#39;</span><span class="p">],</span>
+                                        <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;begin&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;end&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;message&#39;</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatClient.getReservationAvailableDates"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getReservationAvailableDates">[docs]</a>    <span class="k">def</span> <span class="nf">getReservationAvailableDates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           get reservation available dates</span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            Param campus choose west or east campus using defined constant.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">              list of dates like [&#39;2019-03-23&#39;, &#39;2019-03-24&#39;]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">FREE_FILTER</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get dates </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;可预约时间 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dates&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dates&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatClient.getRoomStatus"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getRoomStatus">[docs]</a>    <span class="k">def</span> <span class="nf">getRoomStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">campus</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           get all rooms status</span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            Param campus choose west or east campus using defined constant.</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">              list of room with infos. look at debug info</span>
+<span class="sd">              {&#39;roomId&#39;: 25, &#39;room&#39;: &#39;第六阅览室南区&#39;, &#39;floor&#39;: 7, &#39;maxHour&#39;: 15, &#39;reserved&#39;: 0, &#39;inUse&#39;: 100, &#39;away&#39;: 0, &#39;totalSeats&#39;: 108, &#39;free&#39;: 8}</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">checkCampus</span><span class="p">(</span><span class="n">campus</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">campus</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">checkCampus</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">campus</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">campus</span> <span class="o">==</span> <span class="s2">&quot;WEST_CAMPUS&quot;</span> <span class="ow">or</span> <span class="n">campus</span> <span class="o">==</span> <span class="n">WEST_CAMPUS</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="n">campus</span> <span class="o">==</span> <span class="n">EAST_CAMPUS</span> <span class="ow">or</span> <span class="n">campus</span> <span class="o">==</span> <span class="s2">&quot;EAST_CAMPUS&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;未知的校区错误 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">campus</span><span class="p">))</span>
+                <span class="k">return</span> <span class="mi">1</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;campus&quot;</span><span class="p">:</span> <span class="n">checkCampus</span><span class="p">(</span><span class="n">campus</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">ROOM_STAT</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get free rooms </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="c1"># print all list</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatClient.getSeatsInRoomWithRoomId"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getSeatsInRoomWithRoomId">[docs]</a>    <span class="k">def</span> <span class="nf">getSeatsInRoomWithRoomId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">roomId</span><span class="p">,</span> <span class="n">layoutDate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           get all seats status with roomid </span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            Param roomId required. the id of room which you want to get seats&#39; status.</span>
+<span class="sd">            :param layoutDate: 要预定的日期字符串，格式为 yyyy-mm-dd</span>
+<span class="sd">            Returns:</span>
+<span class="sd">              list of seats with infos. look at debug info</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">layoutDate</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">layoutDate</span> <span class="o">=</span> <span class="nb">str</span><span class="p">((</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;roomId&quot;</span><span class="p">:</span> <span class="n">roomId</span><span class="p">,</span>
+            <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">layoutDate</span>
+        <span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">ROOM_LAYOUT_BY_DATE</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get seats  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="c1"># print all list</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            id , name , cols , row12 ,layout{key:{type = &#39;seat&#39; name=&#39;001&#39; status=&#39;FREE|IN_USE?&#39;,}}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatClient.getSeatStartTimeWithSeatId"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getSeatStartTimeWithSeatId">[docs]</a>    <span class="k">def</span> <span class="nf">getSeatStartTimeWithSeatId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seatId</span><span class="p">,</span> <span class="n">layoutDate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           get Seat Start Times with seat Id</span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            :param seatId: required. the id of room which you want to get seats&#39; status.</span>
+<span class="sd">            :param layoutDate: 要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天</span>
+<span class="sd">            Returns:</span>
+<span class="sd">            时间序列[{&#39;id&#39;: &#39;420&#39;, &#39;value&#39;: &#39;07:00&#39;}]等，如果为空，则当天无法预定</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">layoutDate</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">layoutDate</span> <span class="o">=</span> <span class="nb">str</span><span class="p">((</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;seatId&quot;</span><span class="p">:</span> <span class="n">seatId</span><span class="p">,</span>
+            <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">layoutDate</span>
+        <span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">START_TIME_FOR_SEAT</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSeatStartTimeWithSeatId</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;getstart </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSeatStartTimeWithSeatId</span><span class="p">,</span>
+                      <span class="n">layoutDate</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;startTimes&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;startTimes&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatClient.getSeatEndTimeWithSeatId"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getSeatEndTimeWithSeatId">[docs]</a>    <span class="k">def</span> <span class="nf">getSeatEndTimeWithSeatId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seatId</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">layoutDate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           get Seat End Times with seat Id</span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            :param seatId: required. the id of room which you want to get seats&#39; status.</span>
+<span class="sd">            :param layoutDate: 要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天</span>
+<span class="sd">            :param startTime: required start time of seat.</span>
+<span class="sd">            Returns:</span>
+<span class="sd">            时间序列 [{&#39;id&#39;: &#39;420&#39;, &#39;value&#39;: &#39;07:00&#39;}]等，如果为空，则当天无法预定</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">layoutDate</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">layoutDate</span> <span class="o">=</span> <span class="nb">str</span><span class="p">((</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;seatId&quot;</span><span class="p">:</span> <span class="n">seatId</span><span class="p">,</span>
+            <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">layoutDate</span><span class="p">,</span>
+            <span class="s2">&quot;startTime&quot;</span><span class="p">:</span> <span class="n">startTime</span>
+        <span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">END_TIME_FOR_SEAT</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSeatEndTimeWithSeatId</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSeatEndTimeWithSeatId</span><span class="p">,</span>
+                      <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;endTimes&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;endTimes&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatClient.reserveSeat"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.reserveSeat">[docs]</a>    <span class="k">def</span> <span class="nf">reserveSeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seatId</span><span class="p">,</span> <span class="n">startTime</span><span class="o">=</span><span class="mi">480</span><span class="p">,</span> <span class="n">endTime</span><span class="o">=</span><span class="mi">1320</span><span class="p">,</span> <span class="n">layoutDate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tuesdayType</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           get Seat End Times with seat Id</span>
+
+<span class="sd">            :raise</span>
+<span class="sd">              Exception Unknown Exception Raised By Urilib</span>
+<span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
+<span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
+<span class="sd">              SystemMaintenanceError 系统维护导致失败</span>
+
+<span class="sd">            :param seatId: required. the id of room which you want to get seats&#39; status.</span>
+<span class="sd">            :param layoutDate: 要预定的日期字符串，格式为 yyyy-mm-dd 默认是明天</span>
+<span class="sd">            :param startTime: required start time of seat.</span>
+<span class="sd">            :param endTime: required end time of seat</span>
+<span class="sd">            :param tuesdayType: 周二策略，如果为True，则周二会约 12 点之前的时间段，False为约16点之后的时间段</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">            时间序列 [{&#39;id&#39;: &#39;420&#39;, &#39;value&#39;: &#39;07:00&#39;}]等，如果为空，则当天无法预定</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">layoutDate</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">layoutDate</span> <span class="o">=</span> <span class="nb">str</span><span class="p">((</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">())</span>
+
+        <span class="c1"># 判断用户预输入的时间的正确或错误</span>
+        <span class="k">if</span> <span class="n">startTime</span> <span class="o">&gt;=</span> <span class="n">endTime</span><span class="p">:</span>  <span class="c1"># 判断初始时间是否合法</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;初始结束时间不合法！</span><span class="si">%s</span><span class="s2"> [</span><span class="si">%s</span><span class="s2">] ([</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserveSeat</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">layoutDate</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">endTime</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="s2">&quot;初始结束时间不合法！&quot;</span><span class="p">,</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">TIME_SPAN_ERROR</span><span class="p">)</span>
+        <span class="c1"># 判断周二策略</span>
+        <span class="k">if</span> <span class="n">datetime</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">layoutDate</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;现在是周二&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">startTime</span> <span class="o">&gt;=</span> <span class="mi">720</span> <span class="ow">and</span> <span class="n">endTime</span> <span class="o">&lt;=</span> <span class="mi">960</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;周二无法在您规定时间段内预约座位 </span><span class="si">%s</span><span class="s2"> [</span><span class="si">%s</span><span class="s2">] ([</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserveSeat</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">layoutDate</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">endTime</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="s2">&quot;周二无法在您规定时间段内预约座位！&quot;</span><span class="p">,</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">TIME_SPAN_ERROR</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tuesdayType</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>  <span class="c1"># 执行上午策略</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;执行上午策略&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">startTime</span> <span class="o">&lt;</span> <span class="mi">720</span> <span class="ow">and</span> <span class="n">endTime</span> <span class="o">&gt;=</span> <span class="mi">720</span><span class="p">:</span>
+                    <span class="n">endTime</span> <span class="o">=</span> <span class="mi">720</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># 下午策略</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;执行下午策略&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">startTime</span> <span class="o">&lt;</span> <span class="mi">960</span> <span class="ow">and</span> <span class="n">endTime</span> <span class="o">&gt;=</span> <span class="mi">960</span><span class="p">:</span>
+                    <span class="n">startTime</span> <span class="o">=</span> <span class="mi">960</span>
+            <span class="c1"># 最终处理</span>
+            <span class="k">if</span> <span class="n">endTime</span> <span class="o">&gt;</span> <span class="mi">720</span> <span class="ow">and</span> <span class="n">endTime</span> <span class="o">&lt;</span> <span class="mi">960</span><span class="p">:</span>
+                <span class="n">endTime</span> <span class="o">=</span> <span class="mi">720</span>
+            <span class="k">if</span> <span class="n">startTime</span> <span class="o">&gt;</span> <span class="mi">720</span> <span class="ow">and</span> <span class="n">startTime</span> <span class="o">&lt;</span> <span class="mi">960</span><span class="p">:</span>
+                <span class="n">startTime</span> <span class="o">=</span> <span class="mi">960</span>
+
+        <span class="k">if</span> <span class="n">startTime</span> <span class="o">&gt;=</span> <span class="n">endTime</span><span class="p">:</span>  <span class="c1"># 判断处理后的时间是否合法</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;处理后初始结束时间不合法（2）！</span><span class="si">%s</span><span class="s2"> [</span><span class="si">%s</span><span class="s2">] ([</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserveSeat</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">layoutDate</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">endTime</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">SeatReservationException</span><span class="p">(</span><span class="s2">&quot;初始结束时间不合法！&quot;</span><span class="p">,</span><span class="n">SeatReservationException</span><span class="o">.</span><span class="n">TIME_SPAN_ERROR</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;最终时间 </span><span class="si">%s</span><span class="s2"> [</span><span class="si">%s</span><span class="s2">] ([</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserveSeat</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">layoutDate</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">endTime</span><span class="p">)</span>
+        <span class="n">postForm</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;startTime&#39;</span><span class="p">:</span> <span class="n">startTime</span><span class="p">,</span>
+            <span class="s1">&#39;endTime&#39;</span><span class="p">:</span> <span class="n">endTime</span><span class="p">,</span>
+            <span class="s1">&#39;seat&#39;</span><span class="p">:</span> <span class="n">seatId</span><span class="p">,</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">layoutDate</span>
+        <span class="p">}</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">FREE_BOOK</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">postForm</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserveSeat</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reserveSeat</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="SeatClient.checkIn"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.checkIn">[docs]</a>    <span class="k">def</span> <span class="nf">checkIn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">           开始预约</span>
+<span class="sd">           注意：某些账户，进入图书馆不需要手动签到就可以自动签</span>
+<span class="sd">           要先通过getreservations获得status 是不是 RESERVE,或者CHECK_IN</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        两次获取，看看会不会自动签到</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">getReservations</span><span class="p">()</span>
+        <span class="n">_tmp_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getReservations</span><span class="p">()</span>
+        <span class="k">if</span>  <span class="nb">len</span><span class="p">(</span><span class="n">_tmp_result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>  <span class="n">_tmp_result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CHECK_IN&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;已经实现自动签到 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkIn</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">CHECK_IN</span><span class="p">,</span><span class="n">forwardIP</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkIn</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkIn</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="SeatClient.stop"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            结束预约</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">CHECK_IN</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkIn</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkIn</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="SeatClient.getHistory"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getHistory">[docs]</a>    <span class="k">def</span> <span class="nf">getHistory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">         获取</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">HISTORY</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getHistory</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NetWorkException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;网络异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;未知异常 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkStatus</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;get </span><span class="si">%s</span><span class="s2">  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getHistory</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Seat Api</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, tensorflower.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

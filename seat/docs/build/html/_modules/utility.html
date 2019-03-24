@@ -1,0 +1,628 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>utility &#8212; Seat Api 0.2.3 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for utility</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd"> Seat.ujn.edu.cn</span>
+
+<span class="sd"> 虚拟客户端</span>
+
+<span class="sd"> @author Tensor Flower &lt;3389@protonmail.ch&gt;</span>
+<span class="sd"> @copy right 2009 - 2018</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+<span class="kn">import</span> <span class="nn">urllib.parse</span>
+<span class="kn">import</span> <span class="nn">urllib.error</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">http.cookiejar</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span> <span class="k">as</span> <span class="n">stime</span>
+
+
+<span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span> <span class="s2">&quot;线程：&quot;</span><span class="p">,</span> <span class="n">threading</span><span class="o">.</span><span class="n">current_thread</span><span class="p">()</span><span class="o">.</span><span class="n">getName</span><span class="p">(),</span>
+          <span class="s2">&quot;用户：&quot;</span><span class="p">,</span> <span class="n">entity</span><span class="o">.</span><span class="n">user_config</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SeatUtility"><a class="viewcode-back" href="../index.html#utility.SeatUtility">[docs]</a><span class="k">class</span> <span class="nc">SeatUtility</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      seat lock class</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="s2">&quot;commands&quot;</span><span class="p">,</span> <span class="s2">&quot;user_config&quot;</span><span class="p">,</span> <span class="s2">&quot;base_url&quot;</span><span class="p">,</span> <span class="s2">&quot;auth_url&quot;</span><span class="p">,</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span> <span class="s2">&quot;islogin&quot;</span><span class="p">,</span> <span class="s2">&quot;err_msg&quot;</span><span class="p">,</span> <span class="s2">&quot;phone&quot;</span><span class="p">,</span> <span class="s2">&quot;opener&quot;</span><span class="p">,</span> <span class="s2">&quot;scookie&quot;</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># &quot;Host&quot;: &quot;seat.ujn.edu.cn&quot;,</span>
+        <span class="s2">&quot;Connection&quot;</span><span class="p">:</span> <span class="s2">&quot;Keep-Alive&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;User-Agent&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;X-Forwarded-For&quot;</span><span class="p">:</span> <span class="s2">&quot;10.167.149.241&quot;</span>
+    <span class="p">}</span>
+    <span class="n">cookie</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profile</span><span class="p">,</span> <span class="n">phone</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">head_url</span><span class="o">=</span><span class="s2">&quot;http://seat.ujn.edu.cn&quot;</span><span class="p">):</span>
+        <span class="c1"># self.scookie = http.cookiejar.MozillaCookieJar(filename=&quot;./&quot;+profile[&#39;username&#39;]+&quot;_cookie.dat&quot;)</span>
+        <span class="c1"># self.scookie.save()</span>
+        <span class="c1"># self.scookie.load(ignore_discard=True)</span>
+        <span class="c1"># parser = urllib.request.HTTPCookieProcessor()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">build_opener</span><span class="p">()</span>
+        <span class="c1"># if os.path.exists(&quot;./&quot;+profile[&#39;username&#39;]+&quot;.dat&quot;):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_config</span> <span class="o">=</span> <span class="n">profile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="n">head_url</span> <span class="o">+</span> <span class="s2">&quot;/rest/v2&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="o">=</span> <span class="n">head_url</span> <span class="o">+</span> <span class="s2">&quot;/rest/auth&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phone</span> <span class="o">=</span> <span class="n">phone</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">islogin</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">SeatUtility</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Host&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">head_url</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+            <span class="n">SeatUtility</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span>
+                            <span class="s2">&quot;can not find a valid token while&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SeatUtility.login"><a class="viewcode-back" href="../index.html#utility.SeatUtility.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        用户登录</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="o">+</span> <span class="s2">&quot;?&quot;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_config</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="c1"># self.scookie.save()</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;success&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span> <span class="s2">&quot;登录成功！&quot;</span><span class="p">,</span> <span class="s2">&quot;用户：&quot;</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">user_config</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="s2">&quot;token:&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;token&#39;</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;token&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">islogin</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># {&#39;status&#39;: &#39;fail&#39;, &#39;code&#39;: &#39;13&#39;, &#39;message&#39;: &#39;登录失败: 密码不正确&#39;, &#39;data&#39;: None}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;System Maintenance&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">==</span> <span class="s2">&quot;维护&quot;</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">fetch_booked_seat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="SeatUtility.get_reserved_seats"><a class="viewcode-back" href="../index.html#utility.SeatUtility.get_reserved_seats">[docs]</a>    <span class="k">def</span> <span class="nf">get_reserved_seats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        获取当前已预订的信息</span>
+<span class="sd">        :return: Unit</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/user/reservations&quot;</span> <span class="o">+</span> <span class="s2">&quot;?&quot;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_merge</span><span class="p">({}),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;success&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;status is failed.&quot;</span><span class="p">)</span>
+            <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">              使用中的位置：</span><span class="si">{0}</span><span class="s2"></span>
+<span class="s2">              状态：</span><span class="si">{1}</span><span class="s2">，日期：</span><span class="si">{2}</span><span class="s2">，</span>
+<span class="s2">              开始：</span><span class="si">{3}</span><span class="s2">，结束：</span><span class="si">{4}</span><span class="s2">，</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;当前未有预约&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;location&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;onDate&#39;</span><span class="p">],</span>
+                                 <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;begin&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;end&#39;</span><span class="p">]))</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SeatUtility.get_book_date_filters"><a class="viewcode-back" href="../index.html#utility.SeatUtility.get_book_date_filters">[docs]</a>    <span class="k">def</span> <span class="nf">get_book_date_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        获取可预约时间的列表</span>
+<span class="sd">        :return: list 可预约时间fmt:2018-03-12</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;status&quot;: &quot;success&quot;,</span>
+<span class="sd">                &quot;data&quot;: {</span>
+<span class="sd">                    &quot;buildings&quot;: [</span>
+<span class="sd">                        [1, &quot;东校区&quot;, 5],</span>
+<span class="sd">                        [2, &quot;主校区&quot;, 8]</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    &quot;rooms&quot;: [</span>
+<span class="sd">                        [8, &quot;第五阅览室北区&quot;, 2, 6],</span>
+<span class="sd">                        [9, &quot;第八阅览室北区&quot;, 2, 6],</span>
+<span class="sd">                        [11, &quot;第二阅览室北区&quot;, 2, 3],</span>
+<span class="sd">                        [12, &quot;第二阅览室中区&quot;, 2, 3],</span>
+<span class="sd">                        [13, &quot;第二阅览室南区&quot;, 2, 3],</span>
+<span class="sd">                        [14, &quot;第十一阅览室北区&quot;, 2, 3],</span>
+<span class="sd">                        [15, &quot;第十一阅览室中区&quot;, 2, 3],</span>
+<span class="sd">                        [16, &quot;第十一阅览室南区&quot;, 2, 3],</span>
+<span class="sd">                        [17, &quot;第三阅览室北区&quot;, 2, 4],</span>
+<span class="sd">                        [18, &quot;第三阅览室中区&quot;, 2, 4],</span>
+<span class="sd">                        [19, &quot;第三阅览室南区&quot;, 2, 4],</span>
+<span class="sd">                        [21, &quot;第十阅览室中区&quot;, 2, 4],</span>
+<span class="sd">                        [22, &quot;第十阅览室南区&quot;, 2, 4],</span>
+<span class="sd">                        [23, &quot;第六阅览室北区&quot;, 2, 7],</span>
+<span class="sd">                        [24, &quot;第六阅览室中区&quot;, 2, 7],</span>
+<span class="sd">                        [25, &quot;第六阅览室南区&quot;, 2, 7],</span>
+<span class="sd">                        [27, &quot;第七阅览室中区&quot;, 2, 7],</span>
+<span class="sd">                        [28, &quot;第七阅览室南区&quot;, 2, 7],</span>
+<span class="sd">                        [31, &quot;第四阅览室北区&quot;, 2, 5],</span>
+<span class="sd">                        [32, &quot;第四阅览室中区&quot;, 2, 5],</span>
+<span class="sd">                        [33, &quot;第四阅览室南区&quot;, 2, 5],</span>
+<span class="sd">                        [34, &quot;第九阅览室北区&quot;, 2, 5],</span>
+<span class="sd">                        [35, &quot;第九阅览室中区&quot;, 2, 5],</span>
+<span class="sd">                        [36, &quot;第九阅览室南区&quot;, 2, 5],</span>
+<span class="sd">                        [37, &quot;第五阅览室南区&quot;, 2, 6],</span>
+<span class="sd">                        [38, &quot;第五阅览室中区&quot;, 2, 6],</span>
+<span class="sd">                        [40, &quot;第八阅览室南区&quot;, 2, 6],</span>
+<span class="sd">                        [41, &quot;第一阅览室&quot;, 2, 2],</span>
+<span class="sd">                        [46, &quot;第七阅览室北区&quot;, 2, 7],</span>
+<span class="sd">                        [47, &quot;第八阅览室中区&quot;, 2, 6],</span>
+<span class="sd">                        [49, &quot;商科特色阅览室（诺奖图书 五楼南）&quot;, 1, 5],</span>
+<span class="sd">                        [51, &quot;第一期刊阅览室（现刊 四楼北）&quot;, 1, 4],</span>
+<span class="sd">                        [52, &quot;商科专业书库（二楼南）&quot;, 1, 2],</span>
+<span class="sd">                        [53, &quot;外文、工具书库（二楼北）&quot;, 1, 2],</span>
+<span class="sd">                        [54, &quot;二楼大厅&quot;, 1, 2],</span>
+<span class="sd">                        [55, &quot;人文书库（三楼南）&quot;, 1, 3],</span>
+<span class="sd">                        [56, &quot;综合书库（三楼北）&quot;, 1, 3],</span>
+<span class="sd">                        [57, &quot;第二期刊阅览室（过刊 四楼南）&quot;, 1, 4],</span>
+<span class="sd">                        [58, &quot;第三期刊阅览室（赠刊 五楼北）&quot;, 1, 5],</span>
+<span class="sd">                        [59, &quot;五楼走廊&quot;, 1, 5],</span>
+<span class="sd">                        [60, &quot;信息共享空间（一楼南）&quot;, 1, 1],</span>
+<span class="sd">                        [62, &quot;文化展厅（一楼北）&quot;, 1, 1]</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    &quot;hours&quot;: 15,</span>
+<span class="sd">                    &quot;dates&quot;: [&quot;2018-03-11&quot;, &quot;2018-03-12&quot;]</span>
+<span class="sd">                },</span>
+<span class="sd">                &quot;message&quot;: &quot;&quot;,</span>
+<span class="sd">                &quot;code&quot;: &quot;0&quot;</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/free/filters?token=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dates&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SeatUtility.get_free_room_list"><a class="viewcode-back" href="../index.html#utility.SeatUtility.get_free_room_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_free_room_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schoolid</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        获取空闲信息以及可预订时间</span>
+<span class="sd">        :param schoolid: 校区id，1：东校区，2：西校区</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">              {</span>
+<span class="sd">                    &quot;status&quot;: &quot;success&quot;,</span>
+<span class="sd">                    &quot;data&quot;: [{</span>
+<span class="sd">                        &quot;roomId&quot;: 60,</span>
+<span class="sd">                        &quot;room&quot;: &quot;信息共享空间（一楼南）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 1,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 28,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 85,</span>
+<span class="sd">                        &quot;free&quot;: 57</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 62,</span>
+<span class="sd">                        &quot;room&quot;: &quot;文化展厅（一楼北）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 1,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 0,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 200,</span>
+<span class="sd">                        &quot;free&quot;: 200</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 54,</span>
+<span class="sd">                        &quot;room&quot;: &quot;二楼大厅&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 2,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 0,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 29,</span>
+<span class="sd">                        &quot;free&quot;: 29</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 52,</span>
+<span class="sd">                        &quot;room&quot;: &quot;商科专业书库（二楼南）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 2,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 0,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 60,</span>
+<span class="sd">                        &quot;free&quot;: 60</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 53,</span>
+<span class="sd">                        &quot;room&quot;: &quot;外文、工具书库（二楼北）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 2,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 0,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 73,</span>
+<span class="sd">                        &quot;free&quot;: 73</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 55,</span>
+<span class="sd">                        &quot;room&quot;: &quot;人文书库（三楼南）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 3,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 1,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 57,</span>
+<span class="sd">                        &quot;free&quot;: 56</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 56,</span>
+<span class="sd">                        &quot;room&quot;: &quot;综合书库（三楼北）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 3,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 4,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 101,</span>
+<span class="sd">                        &quot;free&quot;: 97</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 51,</span>
+<span class="sd">                        &quot;room&quot;: &quot;第一期刊阅览室（现刊 四楼北）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 4,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 1,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 195,</span>
+<span class="sd">                        &quot;free&quot;: 194</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 57,</span>
+<span class="sd">                        &quot;room&quot;: &quot;第二期刊阅览室（过刊 四楼南）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 4,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 14,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 194,</span>
+<span class="sd">                        &quot;free&quot;: 180</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 59,</span>
+<span class="sd">                        &quot;room&quot;: &quot;五楼走廊&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 5,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 0,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 34,</span>
+<span class="sd">                        &quot;free&quot;: 34</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 49,</span>
+<span class="sd">                        &quot;room&quot;: &quot;商科特色阅览室（诺奖图书 五楼南）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 5,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 3,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 212,</span>
+<span class="sd">                        &quot;free&quot;: 209</span>
+<span class="sd">                    }, {</span>
+<span class="sd">                        &quot;roomId&quot;: 58,</span>
+<span class="sd">                        &quot;room&quot;: &quot;第三期刊阅览室（赠刊 五楼北）&quot;,</span>
+<span class="sd">                        &quot;floor&quot;: 5,</span>
+<span class="sd">                        &quot;reserved&quot;: 0,</span>
+<span class="sd">                        &quot;inUse&quot;: 2,</span>
+<span class="sd">                        &quot;away&quot;: 0,</span>
+<span class="sd">                        &quot;totalSeats&quot;: 104,</span>
+<span class="sd">                        &quot;free&quot;: 102</span>
+<span class="sd">                    }],</span>
+<span class="sd">                    &quot;message&quot;: &quot;&quot;,</span>
+<span class="sd">                    &quot;code&quot;: &quot;0&quot;</span>
+<span class="sd">                }</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/room/stats2/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">schoolid</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;?&quot;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_merge</span><span class="p">({}),</span>
+                                                                                           <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SeatUtility.get_room_seats_list"><a class="viewcode-back" href="../index.html#utility.SeatUtility.get_room_seats_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_room_seats_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">room_id</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span> <span class="n">s_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        获取房间内座位信息</span>
+<span class="sd">        :param room_id: 房间id</span>
+<span class="sd">        :param s_date: 预订时间；fmt:&#39;2018-01-01&#39;</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">s_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_date</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/room/layoutByDate/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">room_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">s_date</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;?token=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;id&quot;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s2">&quot;type&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SeatUtility.get_start_times"><a class="viewcode-back" href="../index.html#utility.SeatUtility.get_start_times">[docs]</a>    <span class="k">def</span> <span class="nf">get_start_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seat_id</span><span class="o">=</span><span class="mi">8053</span><span class="p">,</span> <span class="n">s_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        获取座位的可开始预约时间</span>
+<span class="sd">        :param seat_id: 座位id</span>
+<span class="sd">        :param s_date: 预约时间</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">s_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_date</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/startTimesForSeat/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">seat_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">s_date</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;?token=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span><span class="p">:</span>
+                <span class="n">startTimes</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;startTimes&#39;</span><span class="p">]</span>
+                <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">startTimes</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SeatUtility.get_end_times"><a class="viewcode-back" href="../index.html#utility.SeatUtility.get_end_times">[docs]</a>    <span class="k">def</span> <span class="nf">get_end_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seat_id</span><span class="o">=</span><span class="mi">8053</span><span class="p">,</span> <span class="n">start_times</span><span class="o">=</span><span class="mi">480</span><span class="p">,</span> <span class="n">s_date</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        获取座位的结束时间</span>
+<span class="sd">        :param seat_id: 座位id</span>
+<span class="sd">        :param start_times: 座位开始时间</span>
+<span class="sd">        :param s_date: 预订日期，默认是今天的下一天（明天）</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">s_date</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_date</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/endTimesForSeat/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">seat_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">s_date</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span>
+                <span class="n">start_times</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;?token=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span><span class="p">:</span>
+                <span class="n">startTimes</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;endTimes&#39;</span><span class="p">]</span>
+                <span class="c1"># for k in startTimes:</span>
+                <span class="c1">#     print(k[&#39;id&#39;], k[&#39;value&#39;])</span>
+                <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">startTimes</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SeatUtility.book_seat"><a class="viewcode-back" href="../index.html#utility.SeatUtility.book_seat">[docs]</a>    <span class="k">def</span> <span class="nf">book_seat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seat_id</span><span class="o">=</span><span class="mi">8053</span><span class="p">,</span> <span class="n">s_date</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start_time</span><span class="o">=</span><span class="mi">480</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="mi">1320</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        预订位置</span>
+<span class="sd">        :param seat_id:座位id</span>
+<span class="sd">        :param s_date: 预订日期，默认为明天</span>
+<span class="sd">        :param start_time: 开始时间</span>
+<span class="sd">        :param end_time: 结束时间</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">s_date</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_date</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+        <span class="c1"># 周二最多到12：00，下午闭馆</span>
+        <span class="k">if</span> <span class="n">start_time</span> <span class="o">&lt;</span> <span class="mi">720</span> <span class="ow">and</span> <span class="n">datetime</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">s_date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">end_time</span> <span class="o">=</span> <span class="mi">720</span>  <span class="c1"># 最多约到12：00</span>
+        <span class="c1"># 12-16</span>
+        <span class="k">if</span> <span class="n">start_time</span> <span class="o">&gt;=</span> <span class="mi">720</span> <span class="ow">and</span> <span class="n">end_time</span> <span class="o">&lt;=</span> <span class="mi">960</span> <span class="ow">and</span> <span class="n">datetime</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">s_date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">today</span><span class="p">(),</span> <span class="s2">&quot;线程：【&quot;</span><span class="p">,</span> <span class="n">threading</span><span class="o">.</span><span class="n">current_thread</span><span class="p">()</span><span class="o">.</span><span class="n">getName</span><span class="p">(),</span> <span class="s2">&quot;】&quot;</span><span class="p">,</span> <span class="s2">&quot;用户：&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_config</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span>
+              <span class="s2">&quot;开始预订日期为&quot;</span><span class="p">,</span> <span class="n">s_date</span><span class="p">,</span> <span class="s2">&quot;座位id为&quot;</span><span class="p">,</span> <span class="n">seat_id</span><span class="p">,</span> <span class="s2">&quot;时间为：&quot;</span><span class="p">,</span> <span class="n">start_time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">end_time</span><span class="o">/</span><span class="mi">60</span><span class="p">,</span> <span class="s2">&quot;的座位&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">postForm</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;token&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span>
+            <span class="s1">&#39;startTime&#39;</span><span class="p">:</span> <span class="n">start_time</span><span class="p">,</span>
+            <span class="s1">&#39;endTime&#39;</span><span class="p">:</span> <span class="n">end_time</span><span class="p">,</span>
+            <span class="s1">&#39;seat&#39;</span><span class="p">:</span> <span class="n">seat_id</span><span class="p">,</span>
+            <span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="n">s_date</span>
+        <span class="p">}</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/freeBook&quot;</span><span class="p">,</span>
+                                         <span class="n">data</span><span class="o">=</span><span class="nb">bytes</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">postForm</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">),</span>
+                                                    <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># self.scookie.save()</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                 {</span>
+<span class="sd">                        &quot;status&quot;: &quot;success&quot;,</span>
+<span class="sd">                        &quot;data&quot;: {</span>
+<span class="sd">                            &quot;id&quot;: 3707691,</span>
+<span class="sd">                            &quot;receipt&quot;: &quot;4028-691-6&quot;,</span>
+<span class="sd">                            &quot;onDate&quot;: &quot;2018 年 03 月 10 日&quot;,</span>
+<span class="sd">                            &quot;begin&quot;: &quot;08 : 00&quot;,</span>
+<span class="sd">                            &quot;end&quot;: &quot;09 : 00&quot;,</span>
+<span class="sd">                            &quot;location&quot;: &quot;主校区7层703室区第六阅览室北区，座位号049&quot;,</span>
+<span class="sd">                            &quot;checkedIn&quot;: false</span>
+<span class="sd">                        },</span>
+<span class="sd">                        &quot;message&quot;: &quot;&quot;,</span>
+<span class="sd">                        &quot;code&quot;: &quot;0&quot;</span>
+<span class="sd">                    }</span>
+
+<span class="sd">                    {&#39;status&#39;: &#39;fail&#39;, </span>
+<span class="sd">                    &#39;data&#39;: None, </span>
+<span class="sd">                    &#39;message&#39;: &#39;预约失败，请尽快选择其他时段或座位&#39;, </span>
+<span class="sd">                    &#39;code&#39;: &#39;1&#39;}</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                预定成功：</span>
+<span class="s2">                id : </span><span class="si">{0}</span><span class="s2"> ,</span>
+<span class="s2">                日期：</span><span class="si">{1}</span><span class="s2">,</span>
+<span class="s2">                开始：</span><span class="si">{2}</span><span class="s2">，结束</span><span class="si">{3}</span><span class="s2">，</span>
+<span class="s2">                位置：</span><span class="si">{4}</span><span class="s2"></span>
+<span class="s2">                &quot;&quot;&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;onDate&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;begin&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;end&#39;</span><span class="p">],</span>
+                                 <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;location&#39;</span><span class="p">]))</span>
+                <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;网络异常&quot;</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">get_last_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span>
+
+    <span class="k">def</span> <span class="nf">library_check_in</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="s2">&quot;/checkIn?token=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">SeatUtility</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_msg</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="s2">&quot;Content-Length&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="nb">bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;False&quot;</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            {&quot;status&quot;:&quot;success&quot;,&quot;data&quot;:{&quot;id&quot;:5977245,&quot;receipt&quot;:&quot;4023-245-5&quot;,&quot;onDate&quot;:&quot;2019 年 03 月 22 日&quot;,&quot;begin&quot;:&quot;19 : 55&quot;,&quot;end&quot;:&quot;20 : 55&quot;,&quot;location&quot;:&quot;西校区3层303室区第二阅览室中区，座位号209&quot;},&quot;message&quot;:&quot;成功登记入场&quot;,&quot;code&quot;:&quot;0&quot;}</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Seat Api</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, tensorflower.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
