@@ -37,7 +37,6 @@ STOP                = "STOP"
 HISTORY             = "HSTY"
 
 
-
 class SeatClient(object):
     """
         SeatClient
@@ -48,6 +47,38 @@ class SeatClient(object):
     @staticmethod
     def NewClient(username, password):
         return SeatClient({'username': username, 'password': password})
+    
+    @classmethod
+    def deserialize(cls,sourceObj):
+        """
+            deserialize SeatClient instance from json.
+            :param sourceObj: json which described details of Seatclient.
+            :return an instance of SeatClient.
+        """
+        _meta = json.loads(sourceObj)
+        _class = cls(profile=_meta['profile'],campus=_meta['campus'],autoLogin=False)
+        _class.opener.token = _meta['token']
+        _class.opener.__SeatClient__isLogin = _meta['isLogin']
+        return _class
+
+    def serialize(self):
+        """
+            Serialize the instance to a json string.
+            :return a descriptor of this instance using json. 
+        """
+        payload = {
+            "profile":self.profile,
+            "token":self.opener.token,
+            'campus':self.opener.region,
+            "isLogin":self.__isLogin
+        }
+        return json.dumps(payload)
+    
+    @staticmethod
+    def NewClientFromSession(session):
+        if session.get('entity',None) == None:
+            raise Exception("Session Entity:None")
+        return SeatClient.deserialize(session.get('entity'))
 
     def __init__(self, profile={'username', 'password'}, campus=WEST_CAMPUS, autoLogin=True):
         """
@@ -91,7 +122,14 @@ class SeatClient(object):
         elif result['code'] == '13':
             logging.warning("登录失败 [%s] %s", self.profile['username'], result)
             self.__last_error_message = result['message']
+            self.__isLogin = False
             raise UserCredentialError(result['message'])
+        
+        elif result['code'] == '12':
+            logging.warning("登录失败 -- TOKEN 失效 [%s] %s", self.profile['username'], result)
+            self.__last_error_message = result['message']
+            self.__isLogin = False
+            raise UserCredentialError(result['message'],UserCredentialError.TOKEN_EXPIRED)
 
         elif result['code'] == '1':  # 错误有很多种类
 
@@ -124,6 +162,32 @@ class SeatClient(object):
             logging.critical(
                 "无法预料的错误 [%s] %s", self.profile['username'], result['message'])
             raise Exception("Unknown Error! {0}".format(result['message']))
+    
+    def getSeatRoomBundle(self,roomId,seatId,campus=WEST_CAMPUS):
+        """
+            using room id and seat id fetch all information about this seat
+            :param roomId: roomid
+            :param seatid: seatid 
+        """
+        targetString = ""
+        roomList = self.getRoomStatus(campus)
+        for i in roomList:
+            if i['roomId'] == roomId:
+                targetString += str(i['floor'])+"楼"
+                targetString += i['room']
+                break
+        else:
+            logging.warning("没找到相关房间 %d",roomId)
+            return None
+        seatList = self.getSeatsInRoomWithRoomId(roomId)
+        for i in seatList['layout'].values():
+            if i['type'] == 'seat' and i['id'] == seatId :
+                targetString += "第"+i['name']+"号位"
+                break           
+        else:
+            logging.warning("没找到相关座位 %d",seatId)
+            return None
+        return targetString
 
     @property
     def campus(self):

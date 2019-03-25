@@ -13,6 +13,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
    
@@ -56,7 +57,7 @@
 
 <dl class="exception">
 <dt id="seat.exception.UserCredentialError">
-<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">UserCredentialError</code><a class="reference internal" href="_modules/seat/exception.html#UserCredentialError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.UserCredentialError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">UserCredentialError</code><span class="sig-paren">(</span><em>message</em>, <em>type=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/exception.html#UserCredentialError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.UserCredentialError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <span class="target" id="module-seat.utility"></span><p>Seat.ujn.edu.cn</p>
@@ -152,6 +153,14 @@ It provides lots of methods can book seat and check in</p>
 要先通过getreservations获得status 是不是 RESERVE,或者CHECK_IN</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="seat.client.SeatClient.deserialize">
+<em class="property">classmethod </em><code class="descname">deserialize</code><span class="sig-paren">(</span><em>sourceObj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.deserialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.deserialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>deserialize SeatClient instance from json.
+:param sourceObj: json which described details of Seatclient.
+:return an instance of SeatClient.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="seat.client.SeatClient.getHistory">
 <code class="descname">getHistory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getHistory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getHistory" title="Permalink to this definition">¶</a></dt>
@@ -164,7 +173,7 @@ It provides lots of methods can book seat and check in</p>
 <dd><p>get reservation available dates</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -184,7 +193,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dd><blockquote>
 <div><p>Get a List of Your Reservations.</p>
 <dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -202,7 +211,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dd><p>get all rooms status</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -223,7 +232,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dd><p>get Seat End Times with seat Id</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -254,7 +263,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dd><p>get Seat Start Times with seat Id</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -282,7 +291,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dd><p>get all seats status with roomid</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -301,7 +310,7 @@ Returns:</p>
 <code class="descname">login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.login" title="Permalink to this definition">¶</a></dt>
 <dd><p>User Login</p>
 <dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -315,7 +324,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dd><p>get Seat End Times with seat Id</p>
 <blockquote>
 <div><dl class="docutils">
-<dt>:raise</dt>
+<dt>Errors:</dt>
 <dd>Exception Unknown Exception Raised By Urilib
 NetWorkException 其他状态导致的网络有问题，比如刷的太快
 UserCredientialError 用户登录失败或状态失败
@@ -343,6 +352,13 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <p>Returns:
 时间序列 [{‘id’: ‘420’, ‘value’: ‘07:00’}]等，如果为空，则当天无法预定</p>
 </div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.serialize">
+<code class="descname">serialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize the instance to a json string.
+:return a descriptor of this instance using json.</p>
 </dd></dl>
 
 <dl class="method">
@@ -416,7 +432,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
       &copy;2019, tensorflower.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

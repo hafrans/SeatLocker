@@ -1,0 +1,5 @@
+
+
+
+
+BAD_SCHOOL_ID = 101
