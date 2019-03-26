@@ -80,8 +80,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">NewClient</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">SeatClient</span><span class="p">({</span><span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="n">password</span><span class="p">})</span>
+    <span class="k">def</span> <span class="nf">NewClient</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span><span class="n">campus</span> <span class="o">=</span> <span class="n">WEST_CAMPUS</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SeatClient</span><span class="p">({</span><span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="n">password</span><span class="p">},</span><span class="n">campus</span><span class="o">=</span><span class="n">campus</span><span class="p">)</span>
     
 <div class="viewcode-block" id="SeatClient.deserialize"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.deserialize">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">sourceObj</span><span class="p">):</span>
@@ -93,7 +93,9 @@
         <span class="n">_meta</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">sourceObj</span><span class="p">)</span>
         <span class="n">_class</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">profile</span><span class="o">=</span><span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;profile&#39;</span><span class="p">],</span><span class="n">campus</span><span class="o">=</span><span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;campus&#39;</span><span class="p">],</span><span class="n">autoLogin</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">_class</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span>
-        <span class="n">_class</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">__SeatClient__isLogin</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;isLogin&#39;</span><span class="p">]</span>
+        <span class="n">_class</span><span class="o">.</span><span class="n">__SeatClient__isLogin</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;isLogin&#39;</span><span class="p">]</span>
+        <span class="n">_class</span><span class="o">.</span><span class="n">__SeatClient__id</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
         <span class="k">return</span> <span class="n">_class</span></div>
 
 <div class="viewcode-block" id="SeatClient.serialize"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -105,7 +107,8 @@
             <span class="s2">&quot;profile&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span>
             <span class="s2">&quot;token&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span><span class="p">,</span>
             <span class="s1">&#39;campus&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span><span class="p">,</span>
-            <span class="s2">&quot;isLogin&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span>
+            <span class="s2">&quot;isLogin&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span><span class="p">,</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__id</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></div>
     
@@ -129,7 +132,7 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是东校的配置进行登录 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是其他的配置进行登录 </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">campus</span><span class="p">)</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">__id</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opener</span> <span class="o">=</span> <span class="n">WrappedRequest</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span> <span class="o">=</span> <span class="n">campus</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">profile</span> <span class="o">=</span> <span class="n">profile</span>
@@ -197,6 +200,32 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
                 <span class="s2">&quot;无法预料的错误 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown Error! </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]))</span>
+    
+<div class="viewcode-block" id="SeatClient.getSeatRoomBundle"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getSeatRoomBundle">[docs]</a>    <span class="k">def</span> <span class="nf">getSeatRoomBundle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">roomId</span><span class="p">,</span><span class="n">seatId</span><span class="p">,</span><span class="n">campus</span><span class="o">=</span><span class="n">WEST_CAMPUS</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            using room id and seat id fetch all information about this seat</span>
+<span class="sd">            :param roomId: roomid</span>
+<span class="sd">            :param seatid: seatid </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">targetString</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">roomList</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getRoomStatus</span><span class="p">(</span><span class="n">campus</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">roomList</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;roomId&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">roomId</span><span class="p">:</span>
+                <span class="n">targetString</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;floor&#39;</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;楼&quot;</span>
+                <span class="n">targetString</span> <span class="o">+=</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;room&#39;</span><span class="p">]</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;没找到相关房间 </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">roomId</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">seatList</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSeatsInRoomWithRoomId</span><span class="p">(</span><span class="n">roomId</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">seatList</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;seat&#39;</span> <span class="ow">and</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">seatId</span> <span class="p">:</span>
+                <span class="n">targetString</span> <span class="o">+=</span> <span class="s2">&quot;第&quot;</span><span class="o">+</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;号位&quot;</span>
+                <span class="k">break</span>           
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;没找到相关座位 </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">seatId</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">targetString</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">campus</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -213,6 +242,14 @@
     <span class="nd">@token</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__id</span>
+    
+    <span class="nd">@id</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__id</span> <span class="o">=</span> <span class="n">val</span>
 
 <div class="viewcode-block" id="SeatClient.login"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
