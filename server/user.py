@@ -18,7 +18,7 @@ class User(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('username', required=True,type=int, help='用户名不合法')
-        self.parser.add_argument('password', required=True,type=int,help="密码不合法")
+        self.parser.add_argument('password', required=True,type=str,help="密码不合法")
         self.parser.add_argument('schoolid',required=True,type=int,help="校区不合法")
         
     
