@@ -1,5 +1,8 @@
 
 
 
+OK = 1
+FAILED = 0
 
 BAD_SCHOOL_ID = 101
+ERR_LOGIN = 102

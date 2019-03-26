@@ -11,6 +11,7 @@ from .user import *
 from flask import session
 from flask_restful import abort
 import sqlite3
+from sqlite3 import Row
 from flask import g
 
 __all__ = ['app']
@@ -23,6 +24,7 @@ api = Api(app)
 app.secret_key = os.urandom(24)
 DATABASE = "./data/sqlite.db"
 DATABASE_INIT_FILE = "./data/init.sql"
+
 
 ##################################
 #  Database Initialization
@@ -59,6 +61,7 @@ app.logger.debug("--------database------initializtion------------------")
 def openDatabase():
     if getattr(g,"db",None) == None:
         g.db = sqlite3.connect(DATABASE)
+        g.db.row_factory = sqlite3.Row
     return g.db
 
 def closeDatabase():

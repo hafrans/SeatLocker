@@ -45,8 +45,8 @@ class SeatClient(object):
     """
 
     @staticmethod
-    def NewClient(username, password):
-        return SeatClient({'username': username, 'password': password})
+    def NewClient(username, password,campus = WEST_CAMPUS):
+        return SeatClient({'username': username, 'password': password},campus=campus)
     
     @classmethod
     def deserialize(cls,sourceObj):
@@ -58,7 +58,9 @@ class SeatClient(object):
         _meta = json.loads(sourceObj)
         _class = cls(profile=_meta['profile'],campus=_meta['campus'],autoLogin=False)
         _class.opener.token = _meta['token']
-        _class.opener.__SeatClient__isLogin = _meta['isLogin']
+        _class.__SeatClient__isLogin = _meta['isLogin']
+        _class.__SeatClient__id = _meta["id"]
+
         return _class
 
     def serialize(self):
@@ -70,7 +72,8 @@ class SeatClient(object):
             "profile":self.profile,
             "token":self.opener.token,
             'campus':self.opener.region,
-            "isLogin":self.__isLogin
+            "isLogin":self.__isLogin,
+            "id": self.__id
         }
         return json.dumps(payload)
     
@@ -94,7 +97,7 @@ class SeatClient(object):
             logging.info("使用的是东校的配置进行登录 %s", profile['username'])
         else:
             logging.info("使用的是其他的配置进行登录 %s (%s)", profile['username'], campus)
-
+        self.__id = 0
         self.opener = WrappedRequest()
         self.opener.region = campus
         self.profile = profile
@@ -204,6 +207,14 @@ class SeatClient(object):
     @token.setter
     def token(self, val):
         self.opener.token = val
+
+    @property
+    def id(self):
+        return self.__id
+    
+    @id.setter
+    def id(self,val):
+        self.__id = val
 
     def login(self):
         """
