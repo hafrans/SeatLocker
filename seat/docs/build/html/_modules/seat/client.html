@@ -13,6 +13,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -37,6 +38,7 @@
 <span class="sd">    Future Features of Seat Client</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
+
 
 <span class="kn">import</span> <span class="nn">urllib</span>
 <span class="kn">import</span> <span class="nn">urllib.parse</span>
@@ -70,7 +72,6 @@
 <span class="n">HISTORY</span>             <span class="o">=</span> <span class="s2">&quot;HSTY&quot;</span>
 
 
-
 <div class="viewcode-block" id="SeatClient"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient">[docs]</a><span class="k">class</span> <span class="nc">SeatClient</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        SeatClient</span>
@@ -79,8 +80,43 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">NewClient</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">SeatClient</span><span class="p">({</span><span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="n">password</span><span class="p">})</span>
+    <span class="k">def</span> <span class="nf">NewClient</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">,</span><span class="n">campus</span> <span class="o">=</span> <span class="n">WEST_CAMPUS</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SeatClient</span><span class="p">({</span><span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="n">password</span><span class="p">},</span><span class="n">campus</span><span class="o">=</span><span class="n">campus</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="SeatClient.deserialize"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.deserialize">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">deserialize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">sourceObj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            deserialize SeatClient instance from json.</span>
+<span class="sd">            :param sourceObj: json which described details of Seatclient.</span>
+<span class="sd">            :return an instance of SeatClient.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_meta</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">sourceObj</span><span class="p">)</span>
+        <span class="n">_class</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">profile</span><span class="o">=</span><span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;profile&#39;</span><span class="p">],</span><span class="n">campus</span><span class="o">=</span><span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;campus&#39;</span><span class="p">],</span><span class="n">autoLogin</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">_class</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">]</span>
+        <span class="n">_class</span><span class="o">.</span><span class="n">__SeatClient__isLogin</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s1">&#39;isLogin&#39;</span><span class="p">]</span>
+        <span class="n">_class</span><span class="o">.</span><span class="n">__SeatClient__id</span> <span class="o">=</span> <span class="n">_meta</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">_class</span></div>
+
+<div class="viewcode-block" id="SeatClient.serialize"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Serialize the instance to a json string.</span>
+<span class="sd">            :return a descriptor of this instance using json. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;profile&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span>
+            <span class="s2">&quot;token&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span><span class="p">,</span>
+            <span class="s1">&#39;campus&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span><span class="p">,</span>
+            <span class="s2">&quot;isLogin&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span><span class="p">,</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__id</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></div>
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">NewClientFromSession</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;entity&#39;</span><span class="p">,</span><span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Session Entity:None&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">SeatClient</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;entity&#39;</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="s1">&#39;password&#39;</span><span class="p">},</span> <span class="n">campus</span><span class="o">=</span><span class="n">WEST_CAMPUS</span><span class="p">,</span> <span class="n">autoLogin</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -96,7 +132,7 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是东校的配置进行登录 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;使用的是其他的配置进行登录 </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">campus</span><span class="p">)</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">__id</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opener</span> <span class="o">=</span> <span class="n">WrappedRequest</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">region</span> <span class="o">=</span> <span class="n">campus</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">profile</span> <span class="o">=</span> <span class="n">profile</span>
@@ -124,7 +160,14 @@
         <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;13&#39;</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;登录失败 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">raise</span> <span class="n">UserCredentialError</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+        
+        <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;12&#39;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;登录失败 -- TOKEN 失效 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_error_message</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__isLogin</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">raise</span> <span class="n">UserCredentialError</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">],</span><span class="n">UserCredentialError</span><span class="o">.</span><span class="n">TOKEN_EXPIRED</span><span class="p">)</span>
 
         <span class="k">elif</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>  <span class="c1"># 错误有很多种类</span>
 
@@ -157,6 +200,32 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
                 <span class="s2">&quot;无法预料的错误 [</span><span class="si">%s</span><span class="s2">] </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown Error! </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]))</span>
+    
+<div class="viewcode-block" id="SeatClient.getSeatRoomBundle"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.getSeatRoomBundle">[docs]</a>    <span class="k">def</span> <span class="nf">getSeatRoomBundle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">roomId</span><span class="p">,</span><span class="n">seatId</span><span class="p">,</span><span class="n">campus</span><span class="o">=</span><span class="n">WEST_CAMPUS</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            using room id and seat id fetch all information about this seat</span>
+<span class="sd">            :param roomId: roomid</span>
+<span class="sd">            :param seatid: seatid </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">targetString</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">roomList</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getRoomStatus</span><span class="p">(</span><span class="n">campus</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">roomList</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;roomId&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">roomId</span><span class="p">:</span>
+                <span class="n">targetString</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;floor&#39;</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;楼&quot;</span>
+                <span class="n">targetString</span> <span class="o">+=</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;room&#39;</span><span class="p">]</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;没找到相关房间 </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">roomId</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">seatList</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSeatsInRoomWithRoomId</span><span class="p">(</span><span class="n">roomId</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">seatList</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;seat&#39;</span> <span class="ow">and</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">seatId</span> <span class="p">:</span>
+                <span class="n">targetString</span> <span class="o">+=</span> <span class="s2">&quot;第&quot;</span><span class="o">+</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;号位&quot;</span>
+                <span class="k">break</span>           
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;没找到相关座位 </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">seatId</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">targetString</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">campus</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -174,11 +243,19 @@
     <span class="k">def</span> <span class="nf">token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">val</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__id</span>
+    
+    <span class="nd">@id</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__id</span> <span class="o">=</span> <span class="n">val</span>
+
 <div class="viewcode-block" id="SeatClient.login"><a class="viewcode-back" href="../../index.html#seat.client.SeatClient.login">[docs]</a>    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            User Login </span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -212,7 +289,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Get a List of Your Reservations.</span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -255,7 +332,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">           get reservation available dates</span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -286,7 +363,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">           get all rooms status</span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -338,7 +415,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">           get all seats status with roomid </span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -385,7 +462,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">           get Seat Start Times with seat Id</span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -423,7 +500,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">           get Seat End Times with seat Id</span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -463,7 +540,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">           get Seat End Times with seat Id</span>
 
-<span class="sd">            :raise</span>
+<span class="sd">            Errors:</span>
 <span class="sd">              Exception Unknown Exception Raised By Urilib</span>
 <span class="sd">              NetWorkException 其他状态导致的网络有问题，比如刷的太快</span>
 <span class="sd">              UserCredientialError 用户登录失败或状态失败</span>
@@ -659,7 +736,7 @@
       &copy;2019, tensorflower.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

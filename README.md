@@ -1,7 +1,7 @@
 # Automatic Library Booking System for University of Jinan V1.0
 ---  
 
-[🇨🇳 中文版](./README_Zh.md) | English
+[🇨🇳 中文版](./README_Zh.md) | English | [Doc](./seat/docs/build/index.html)
 
 > We Have Refactored all script of SeatUtility. We Will Release SeatClient very soon. After new release , the SeatUtility and it's automatic reserving script
 > will be deprecated and no longer receive any support.

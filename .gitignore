@@ -6,3 +6,4 @@ test*.py
 docs/source/*
 docs/make.bat
 docs/Makefile
+/data
