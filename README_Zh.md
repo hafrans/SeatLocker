@@ -1,6 +1,6 @@
 # UJN图书馆座位助手+API
 
-中文版 | [English](./README.md) | [Doc](./seat/docs/build/index.html)
+中文版 | [English](./README.md) | [Docs](http://hafrans.github.io/SeatLocker/seat/docs/build/index.html)
 
 > 我们重构了所有的代码，实现了一个全新的插件库。
 > 目前的版本正在开发中，很快就有新版本诞生。目前的版本将会在下次的版本迭代中正式废弃，之后不会
