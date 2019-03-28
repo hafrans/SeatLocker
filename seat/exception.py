@@ -32,11 +32,23 @@ class UserCredentialError(Exception):
 
 class SeatReservationException(Exception):
 
+    #预约时段不合法
     TIME_SPAN_ERROR = 0
-    HAVE_RESERVED = 1
-    FAILED_RESERVED = 2
-    NO_AVAILABLE_RESERVATIONS = 3
-    IP_NOT_ALLOWED = 4
+    #已经有一个预约了 
+    HAVE_RESERVED = 1 
+    # 位置被抢
+    FAILED_RESERVED = 2 
+    # 无可用预约 
+    NO_AVAILABLE_RESERVATIONS = 3 
+    # 该IP不允许操作
+    IP_NOT_ALLOWED = 4 
+    #无效预约
+    RESERVE_CANCEL_INVALIDED = 5 
+    #预约重复取消
+    RESERVE_HAVE_CANCELED = 6 
+
+    #不在可预约时间
+    NOT_IN_RESERVE_TIME = 7
 
     def __init__(self,message,type = TIME_SPAN_ERROR):
         self.type = type

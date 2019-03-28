@@ -38,14 +38,14 @@ class WrappedRequest(object):
         "BOOK": "/rest/v2/freeBook",
         "CKIN": "/rest/v2/checkIn",
         "STOP": "/rest/v2/stop",
-        "HSTY": "/rest/v2/history/1/20"
+        "HSTY": "/rest/v2/history/1/20",
+        "CACE": "/rest/v2/cancel/{id}"
     }
 
     __default_headers_template = {
         "Host": urllib.parse.urlparse(BASE_URL).netloc,
         "Connection": "Keep-Alive",
         "User-Agent": "",
-        "X-Forwarded-For": "",  # add this
         "token": ""
     }
 
@@ -129,7 +129,7 @@ class WrappedRequest(object):
         if post != None:
             _post = str.encode(self.urlencode(post), encoding='UTF-8')
 
-        if forwardIP:
+        if forwardIP == True:
             _head = self.headers.copy()
             _head['X-Forwarded-For'] = WrappedRequest.WEST_CAMPUS if self.__region == WEST_CAMPUS else WrappedRequest.EAST_CAMPUS
 

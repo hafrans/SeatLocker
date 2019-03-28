@@ -8,6 +8,7 @@ from flask import Flask
 import flask_restful
 from flask_restful import Resource, Api
 from .user import *
+from .seats import *
 from flask import session
 from flask_restful import abort
 import sqlite3
@@ -68,13 +69,22 @@ def closeDatabase():
     if getattr(g,"db",None) != None:
         g.db.close()
 
-
+headers = {
+    "Access-Control-Allow-Headers":"X-Requested-With, accept, content-type, *",
+    "Access-Control-Allow-Origin":"http://192.168.123.117:8080" ,
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods":"GET, HEAD, POST, PUT, DELETE, TRACE, PATCH"
+}
 
 @app.before_request
 def test1():
     openDatabase()
 
-
+@app.after_request
+def apply_caching(response):
+    for k,v in headers.items():
+        response.headers[k] = v
+    return response
 
 
 @app.teardown_request
@@ -84,6 +94,8 @@ def teardown_request(exception):
 
 ################################
 
+
+
 def custom_error(http_status_code, *args, **kwargs):
     if http_status_code == 400:
         abort(400,**{'code':'12','message':'参数错误','fields':kwargs.get('message',None)})
@@ -92,6 +104,15 @@ def custom_error(http_status_code, *args, **kwargs):
 
 flask_restful.abort = custom_error
 
-api.add_resource(User,"/",endpoint="user")
 
+
+
+api.add_resource(User,"/",endpoint="user")
+api.add_resource(Reservation,"/reservation")
+api.add_resource(History,"/history")
+api.add_resource(Checkin,"/checkin")
+api.add_resource(Seats,"/seats/<int:roomId>")
+api.add_resource(Room,"/rooms")
+api.add_resource(Book,"/book/<date>/<int:roomId>/<int:seatId>/<action>/<int:arg>","/reserveseat")
+api.add_resource(AvailableDates,"/dates")
 

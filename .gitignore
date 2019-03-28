@@ -7,3 +7,5 @@ docs/source/
 docs/make.bat
 docs/Makefile
 /data
+node_modules
+/client/

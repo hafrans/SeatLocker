@@ -35,6 +35,7 @@ FREE_BOOK           = "BOOK"
 CHECK_IN            = "CKIN"
 STOP                = "STOP"
 HISTORY             = "HSTY"
+CANCEL              = "CACE"
 
 
 class SeatClient(object):
@@ -49,19 +50,19 @@ class SeatClient(object):
         return SeatClient({'username': username, 'password': password},campus=campus)
     
     @classmethod
-    def deserialize(cls,sourceObj):
+    def deserialize(SeatClient,sourceObj):
         """
             deserialize SeatClient instance from json.
             :param sourceObj: json which described details of Seatclient.
-            :return an instance of SeatClient.
+            :return SeatClient instance
         """
         _meta = json.loads(sourceObj)
-        _class = cls(profile=_meta['profile'],campus=_meta['campus'],autoLogin=False)
-        _class.opener.token = _meta['token']
-        _class.__SeatClient__isLogin = _meta['isLogin']
-        _class.__SeatClient__id = _meta["id"]
+        clazz = SeatClient(profile=_meta['profile'],campus=_meta['campus'],autoLogin=False)
+        clazz.opener.token = _meta['token']
+        clazz.__SeatClient__isLogin = _meta['isLogin']
+        clazz.id = _meta["id"]
 
-        return _class
+        return clazz
 
     def serialize(self):
         """
@@ -155,11 +156,25 @@ class SeatClient(object):
                 logging.warning(
                     "checkin失败！ [%s] %s", self.profile['username'], result)
                 raise SeatReservationException(result['message'],SeatReservationException.IP_NOT_ALLOWED)
+            
+            elif result['message'] == "预约已经取消，请勿重复操作":
+                logging.warning(
+                    " [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.RESERVE_HAVE_CANCELED)
+            
+            elif result['message'] == "无效预约":
+                logging.warning(
+                    " [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.RESERVE_CANCEL_INVALIDED)
+            elif "系统可预约时间为" in result['message']:
+                logging.warning(
+                    " [%s] %s", self.profile['username'], result)
+                raise SeatReservationException(result['message'],SeatReservationException.NOT_IN_RESERVE_TIME)
 
             else:
                 logging.warning(
                     "参数错误 [%s] %s", self.profile['username'], result)
-                raise Exception("服务器传来错误 {0}".format(result['message']))
+                raise Exception("{0}".format(result['message']))
             
         else:
             logging.critical(
@@ -610,12 +625,12 @@ class SeatClient(object):
     
     def stop(self):
         """
-            结束预约
+            结束使用座位
         """
         result = None
         try:
-            result = self.opener.request(CHECK_IN)
-            logging.info("get %s  %s", self.checkIn, result)
+            result = self.opener.request(STOP)
+            logging.info("get %s  %s", self.stop, result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())
             raise e
@@ -624,12 +639,12 @@ class SeatClient(object):
             raise e
 
         self.checkStatus(result)
-        logging.debug("get %s  %s", self.checkIn, result['data'])
-        return result['data']
+        logging.debug("get %s  %s", self.stop, result['data'])
+        return True
     
     def getHistory(self):
         """
-         获取
+         获取日志记录
         """
         result = None
         try:
@@ -643,5 +658,27 @@ class SeatClient(object):
             raise e
 
         self.checkStatus(result)
-        logging.debug("get %s  %s", self.getHistory, result['data'])
-        return result['data']
+        logging.debug("get %s  %s", self.getHistory, result['data']['reservations'])
+        return result['data']['reservations']
+    
+    def cancel(self,id):
+        """
+            取消预约
+        """
+        result = None
+        payload = {
+            'id':id
+        }
+        try:
+            result = self.opener.request(CANCEL,payload=payload)
+            logging.info("get %s  %s", self.cancel, result)
+        except NetWorkException as e:
+            logging.warning("网络异常 %s", e.__str__())
+            raise e
+        except Exception as e:
+            logging.error("未知异常 %s", e.__str__())
+            raise e
+
+        self.checkStatus(result)
+        logging.debug("get %s  %s", self.cancel, result['data'])
+        return True
