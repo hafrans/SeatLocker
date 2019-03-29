@@ -47,6 +47,9 @@ class SeatReservationException(Exception):
     #预约重复取消
     RESERVE_HAVE_CANCELED = 6 
 
+    #预约重复签到
+    RESERVE_HAVE_CHECKEDIN = 8
+
     #不在可预约时间
     NOT_IN_RESERVE_TIME = 7
 

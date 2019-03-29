@@ -1,22 +1,19 @@
-
-from flask_restful import Resource
-
 import sys
 sys.path.append("..")
-from seat.__future__ import *
-from flask import session,jsonify,g
-from flask_restful import reqparse
-from flask_restful import request,inputs
-from .utils import *
-from .error import *
 import json
+from .error import *
+from .utils import *
+from flask_restful import reqparse
+from flask_restplus import Resource
+from flask import session, jsonify, g
 from datetime import datetime
+from seat.__future__ import *
 
 
 
 class User(Resource):
 
-    def __init__(self):
+    def __init__(self,api):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('username', required=True,type=int, help='用户名不合法')
         self.parser.add_argument('password', required=True,type=str,help="密码不合法")
@@ -24,30 +21,15 @@ class User(Resource):
         
     
     def get(self):
-        if session.get("entity",None) == None:
-            return returnData(ERR_LOGIN,'not login',"用户未登录",None)
-        else:
-            try:
-                p = SeatClient.deserialize(session.get('entity'))
-                p.getReservations()
-                _meta = json.loads(session.get('entity',None))
-                cursor = g.db.cursor()
-                result = cursor.execute("select * from settings where user = ? ",(_meta['id'],)).fetchone()
-                cursor.close()
-                return returnData(OK,'success','已在登录状态',{'username':_meta['profile']['username'],'campus':_meta['campus'],'islogin':_meta['isLogin'],'id':_meta['id'],'checkin':result['checkin'],'reserve':result['reserve']})
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
-            except Exception as err:
-                return returnData(46001,'failed',str(err),None)
+        simpleCheckLogin(session)
+        p = SeatClient.deserialize(session.get('entity'))
+        p.getReservations() #检查与服务器的连接性
+        _meta = json.loads(session.get('entity',None))
+        cursor = g.db.cursor()
+        result = cursor.execute("select * from settings where user = ? ",(_meta['id'],)).fetchone()
+        cursor.close()
+        return returnData(OK,'success','已在登录状态',{'username':_meta['profile']['username'],'campus':_meta['campus'],'islogin':_meta['isLogin'],'id':_meta['id'],'checkin':result['checkin'],'reserve':result['reserve']})
+           
             
     def delete(self):
         if session.get("entity",None) == None:
@@ -94,12 +76,9 @@ class User(Resource):
                 
                 _id = result[0]
                 p.id = _id
-
-                print(datetime.today() - datetime.fromisoformat(result['register_time']))
                 if result['password'] != password:
                     cu.execute("update users set password = ? where id = ?", (password,_id))
                     cu.execute("insert into log (user,jigann,content) values (?,?,?)",(_id,current_time,"修改了密码"))
-                
                 if result['lock'] == 1:
                     cu.execute("insert into log (user,jigann,content) values (?,?,?)",(_id,current_time,"用户被系统锁定，并尝试登录"))
                     g.db.commit() 
@@ -109,19 +88,8 @@ class User(Resource):
                 g.db.commit()        
                 session['entity'] = p.serialize()
                 return returnData(OK,'success','登录成功',None)
-        except UserCredentialError as err:
-            return returnData(ERR_LOGIN,'failed',str(err.message),None)
-        except NetWorkException as err:
-            invalidate(session)
-            return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-        except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
         except Exception as err:
-            return returnData(46001,'failed',str(err),None)
+            raise err
         finally:
             if cu != None:
                cu.close() 
-        
-
-        
-        return returnData(OK,"success",'登录成功',args)

@@ -1,16 +1,15 @@
-
-from flask import session, jsonify, g
-from flask_restful import request, inputs
-from datetime import datetime
+import sys
+sys.path.append("..")
 import json
 from .error import *
 from .utils import *
 from flask_restful import reqparse
+from flask_restplus import Resource
+from flask import session, jsonify, g
+from datetime import datetime
 from seat.__future__ import *
-from flask_restful import Resource
 
-import sys
-sys.path.append("..")
+
 
 
 class Room(Resource):
@@ -18,32 +17,20 @@ class Room(Resource):
         FetchAll Room status
     """
 
-    def __init__(self):
+    def __init__(self,api):
         pass
 
     def get(self):
         if session.get("entity", None) == None:
             return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
         else:
-            try:
-                p = SeatClient.deserialize(session.get('entity'))
-                result = p.getRoomStatus()
-                return returnData(OK, 'success', "ok", result)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
-            except Exception as err:
-                raise err
+            p = SeatClient.deserialize(session.get('entity'))
+            result = p.getRoomStatus()
+            return returnData(OK, 'success', "ok", result)
 
 class AvailableDates(Resource):
+    def __init__(self,api):
+         pass
 
     def get(self):
         if session.get("entity", None) == None:
@@ -77,7 +64,7 @@ class Book(Resource):
         reserve seat with seatId,roomId,date,start,end,tuesday
     """
 
-    def __init__(self):
+    def __init__(self,api):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument(
             "seatId", type=int, help="请输入正确的座位ID", required=True)
@@ -142,15 +129,7 @@ class Book(Resource):
                 cursor.execute("insert into seatinfo values (?,?,?,?)",(args['seatId'],args['roomId'],result['location'],p.opener.region,))
                 g.db.commit()
                 ## 缓存结束
-
                 return returnData(OK, 'success', "预约成功！", None)
-
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
             except SeatReservationException as err:
                 if err == SeatReservationException.NO_AVAILABLE_RESERVATIONS:
                     return returnData(FAILED, 'failed', '没有可取消的预约', None)
@@ -162,13 +141,8 @@ class Book(Resource):
                     return returnData(FAILED, 'failed', '您选择的位置被其他人占用，请尽快选择其他时段或座位', None)
                 if err == SeatReservationException.NOT_IN_RESERVE_TIME:
                     return returnData(FAILED, 'failed', '目前不在选座时间段内，请使用选座助手,自动帮您预约座位', None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
             except ValueError as err:
                 return returnData(FAILED, 'failed', "日期格式不合法", None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err
             finally:
@@ -184,7 +158,7 @@ class Other(Resource):
 
 class Seats(Resource):
 
-    def __init__(self):
+    def __init__(self,api):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument("room", type=int, help="请输入正确的room ID")
         pass
@@ -203,17 +177,6 @@ class Seats(Resource):
                     if i['type'] == 'seat':
                         _result.append(i)
                 return returnData(OK, 'success', "success", _result)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err
 
@@ -223,6 +186,9 @@ class RemoteAffairs(Resource):
 
 
 class History(Resource):
+    def __init__(self,api):
+        pass
+
     def get(self):
         """
             获取
@@ -234,26 +200,15 @@ class History(Resource):
                 p = SeatClient.deserialize(session.get('entity'))
                 result = p.getHistory()
                 return returnData(OK, 'success', "已终止使用当前预约", result)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
             except SeatReservationException as err:
                 if err == SeatReservationException.NO_AVAILABLE_RESERVATIONS:
                     return returnData(FAILED, 'failed', '没有可取消的预约', None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err
 
 
 class Checkin(Resource):
-    def __init__(self):
+    def __init__(self,api):
         pass
 
     def get(self):
@@ -280,37 +235,28 @@ class Checkin(Resource):
                 _resv = p.getReservations()  # 先获取可不可以签到
                 if len(_resv) == 0:
                     return returnData(FAILED, 'failed', '没有预约的项目，不需要签到', _result)
-                if p.getReservations()[0]['status'] == "RESERVE":
+                if _resv[0]['status'] == "RESERVE":
                     _result = p.checkIn()
                 else:
                     return returnData(OK_NOT_REPEAT, 'success', '已入场,无需重新签到', _result)
-                if session.get('_resv',None) != _resv[0].receipt:
+                if session.get('_resv',None) != _resv[0]['receipt']:
                     # 录入信息
                     cursor.execute("insert into log (user,jigann,content) values (?,?,?)", (p.id, str(
                         datetime.today().replace(microsecond=0)), "签到成功"))
                     cursor.execute(
                         "update settings set checkin = ? where user = ? ", (result[0]-1, p.id,))
                     g.db.commit()
-                    session['_resv'] =  _resv[0].receipt
+                    session['_resv'] =  _resv[0]['receipt']
                     return returnData(OK, 'success', '成功登记入场', _result)
                 else:
-                    return returnData(OK, 'success', '成功登记入场,但约座系统不显示正在履约，已经为您重新登记，此次不消耗签到次数', _result)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
+                    return returnData(OK, 'success', '成功登记入场,但约座系统不显示正在履约，已经为您重新登记，此次不消耗签到次数，您可以稍后刷新后再查看签到状态', _result)
             except SeatReservationException as e:
                 if e == SeatReservationException.NO_AVAILABLE_RESERVATIONS:
                     # cursor.execute("insert into log (user,jigann,content) values (?,?,?)", (p.id, str(
                     #     datetime.today().replace(microsecond=0)), "签到成功"))
                     return returnData(FAILED, 'failed', '没有可用预约,或签到不在时间段内', None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
+                elif e == SeatReservationException.RESERVE_HAVE_CHECKEDIN:
+                    return returnData(FAILED, 'failed', '已成功登记入场,无需重复签到', None)
             except Exception as err:
                 raise err
             finally:
@@ -328,27 +274,16 @@ class Checkin(Resource):
                 p = SeatClient.deserialize(session.get('entity'))
                 if p.stop():
                     return returnData(OK, 'success', "已终止使用当前预约", None)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
             except SeatReservationException as err:
                 if err == SeatReservationException.NO_AVAILABLE_RESERVATIONS:
                     return returnData(FAILED, 'failed', '没有可取消的预约', None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err
 
 
 class Reservation(Resource):
 
-    def __init__(self):
+    def __init__(self,api):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument(
             "id", type=int, required=True, help="请输入正确的id，不是入侵？")
@@ -376,22 +311,11 @@ class Reservation(Resource):
                 if len(result) == 0:
                     return returnData(DATA_EMPTY, 'success', '暂时没有今日预约', None)
                 return returnData(OK, 'success', 'none', result[0])
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
             except SeatReservationException as err:
                 if err == SeatReservationException.RESERVE_CANCEL_INVALIDED:
                     return returnData(FAILED, 'failed', "无效预约", None)
                 elif err == SeatReservationException.RESERVE_HAVE_CANCELED:
                     return returnData(FAILED, 'failed', "预约已被取消，不可重复取消", None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err
 
@@ -410,21 +334,10 @@ class Reservation(Resource):
                 p = SeatClient.deserialize(session.get('entity'))
                 if p.cancel(args['id']) == True:
                     return returnData(OK, 'success', '预约取消成功', None)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
             except SeatReservationException as err:
                 if err == SeatReservationException.RESERVE_CANCEL_INVALIDED:
                     return returnData(FAILED, 'failed', "无效预约", None)
                 elif err == SeatReservationException.RESERVE_HAVE_CANCELED:
                     return returnData(FAILED, 'failed', "预约已被取消，不可重复取消", None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err

@@ -1,6 +1,4 @@
 
-
-
 OK = 1
 FAILED = 0
 
@@ -19,3 +17,7 @@ OK_NOT_REPEAT = 2
 
 SERVER_FAILED = 500
 SYSTEM_MAINTENANCE = 501
+
+
+class UserNotLoginError(Exception):
+    pass

@@ -602,11 +602,10 @@ class SeatClient(object):
         """
         两次获取，看看会不会自动签到
         """
-        self.getReservations()
         _tmp_result = self.getReservations()
         if  len(_tmp_result) > 0 and  _tmp_result[0]['status'] == "CHECK_IN":
             logging.info("已经实现自动签到 %s", self.checkIn)
-            return True
+            raise SeatReservationException("已经签到成功，无需再次签到",SeatReservationException.RESERVE_HAVE_CHECKEDIN)
 
         result = None
         try:

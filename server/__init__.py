@@ -3,22 +3,26 @@ import sys
 import os
 sys.path.append("..")
 
+
+import flask_restplus
+import sqlite3
+
 from seat.__future__ import *
 from flask import Flask
-import flask_restful
-from flask_restful import Resource, Api
-from .user import *
-from .seats import *
-from flask import session
-from flask_restful import abort
-import sqlite3
+from flask import session,abort,g
+from flask_restplus import Resource, Api
+from .basic import *
+from .account import *
+from .premium import *
+from .utils import headers
+from werkzeug.exceptions import HTTPException
 from sqlite3 import Row
-from flask import g
+
 
 __all__ = ['app']
 
 app = Flask(__name__)
-api = Api(app)
+api = Api(app,doc=False,)
 
 
 
@@ -69,12 +73,6 @@ def closeDatabase():
     if getattr(g,"db",None) != None:
         g.db.close()
 
-headers = {
-    "Access-Control-Allow-Headers":"X-Requested-With, accept, content-type, *",
-    "Access-Control-Allow-Origin":"http://192.168.123.117:8080" ,
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Methods":"GET, HEAD, POST, PUT, DELETE, TRACE, PATCH"
-}
 
 @app.before_request
 def test1():
@@ -89,25 +87,53 @@ def apply_caching(response):
 
 @app.teardown_request
 def teardown_request(exception):
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     closeDatabase()
 
 
 ################################
 
 
+##############################
+# ADD HANDLERS
+##############################
 
-def custom_error(http_status_code, *args, **kwargs):
-    if http_status_code == 400:
-        abort(400,**{'code':'12','message':'参数错误','fields':kwargs.get('message',None)})
-    abort(http_status_code,**kwargs)
+@api.errorhandler(UserCredentialError)
+def UserCredentialErrorHandler(err):
+    if err == UserCredentialError.TOKEN_EXPIRED:
+        invalidate(session)
+        return returnData(ERR_LOGIN, 'not login', "令牌失效,请重新登录", None)
+    else:
+        return returnData(ERR_LOGIN, 'not login', "用户名或者密码有误",None)
+
+@api.errorhandler(NetWorkException)
+def NetWorkExceptionHandler(err):
+    invalidate(session)
+    return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
+
+@api.errorhandler(SystemMaintenanceError)
+def SystemMaintenanceErrorHandler(err):
+    return returnData(501,'failed',"服务器正在维护中，请稍后再试!",None)
+
+@api.errorhandler(UserNotLoginError)
+def UserNotLoginErrorHandler(err):
+    return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+
+@api.errorhandler(Exception)
+def ErrorExceptionHandler(err):
+    return returnData(46001,'failed',str(err),None)
+
+# def custom_error(http_status_code, *args, **kwargs):
+#     print(http_status_code)
+#     if http_status_code == 400:
+#         abort(400,**{'code':'12','message':'参数错误','fields':kwargs.get('message',None)})
+#     abort(http_status_code,**kwargs)
 
 
-flask_restful.abort = custom_error
+# flask_restplus.abort = custom_error
 
 
-
-
-api.add_resource(User,"/",endpoint="user")
+api.add_resource(User,"/user","/",endpoint="user")
 api.add_resource(Reservation,"/reservation")
 api.add_resource(History,"/history")
 api.add_resource(Checkin,"/checkin")

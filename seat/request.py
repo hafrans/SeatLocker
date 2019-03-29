@@ -130,6 +130,7 @@ class WrappedRequest(object):
             _post = str.encode(self.urlencode(post), encoding='UTF-8')
 
         if forwardIP == True:
+            logging.debug("USING FORWARD HEAD")
             _head = self.headers.copy()
             _head['X-Forwarded-For'] = WrappedRequest.WEST_CAMPUS if self.__region == WEST_CAMPUS else WrappedRequest.EAST_CAMPUS
 
