@@ -141,6 +141,8 @@ class Book(Resource):
                     return returnData(FAILED, 'failed', '您选择的位置被其他人占用，请尽快选择其他时段或座位', None)
                 if err == SeatReservationException.NOT_IN_RESERVE_TIME:
                     return returnData(FAILED, 'failed', '目前不在选座时间段内，请使用选座助手,自动帮您预约座位', None)
+                if err == SeatReservationException.LICENSE_EXPIRED:
+                    return returnData(FAILED, 'failed', '出现了不可抗因素：图书馆座位预约系统许可证过期', None)
             except ValueError as err:
                 return returnData(FAILED, 'failed', "日期格式不合法", None)
             except Exception as err:

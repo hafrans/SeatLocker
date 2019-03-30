@@ -9,12 +9,13 @@ import sqlite3
 
 from seat.__future__ import *
 from flask import Flask
-from flask import session,abort,g
+from flask import session,abort,g,logging
 from flask_restplus import Resource, Api
 from .basic import *
 from .account import *
 from .premium import *
 from .utils import headers
+from .premium import *
 from werkzeug.exceptions import HTTPException
 from sqlite3 import Row
 
@@ -35,10 +36,10 @@ DATABASE_INIT_FILE = "./data/init.sql"
 #  Database Initialization
 ##################################
 init_flag = False
-app.logger.debug("--------database------initializtion------------------")
+logging.logging.debug("--------database------initializtion------------------")
 if not os.path.exists(DATABASE):
     # initialize now
-    app.logger.info("I will initialize a new database!")
+    logging.logging.info("I will initialize a new database!")
     os.makedirs(os.path.dirname(DATABASE),exist_ok=True)
     fd = open(DATABASE,mode="wb")
     fd.close()
@@ -49,15 +50,15 @@ if not os.path.exists(DATABASE):
                cu.executescript(file.read().strip())
             cu.close()
             cx.commit()
-            app.logger.debug("database is initialized.")
+            logging.logging.debug("database is initialized.")
         except Exception as e:
             print(e)
-            app.logger.debug("database initialization failed.")
+            logging.logging.debug("database initialization failed.")
             init_flag = True
 else:
-    app.logger.debug("DataBase have initialized.")
+    logging.logging.debug("DataBase have initialized.")
 
-app.logger.debug("--------database------initializtion------------------")
+logging.logging.debug("--------database------initializtion------------------")
 ##################################
 # Database Initialized
 ##################################
@@ -119,9 +120,17 @@ def SystemMaintenanceErrorHandler(err):
 def UserNotLoginErrorHandler(err):
     return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
 
-@api.errorhandler(Exception)
-def ErrorExceptionHandler(err):
-    return returnData(46001,'failed',str(err),None)
+@api.errorhandler(SeatNotFoundException)
+def SeatNotFoundExceptionHandler(err):
+    return returnData(FAILED, 'seat_not_found', "座位不存在", None)
+
+@api.errorhandler(RoomNotFoundException)
+def RoomNotFoundExceptionHandler(err):
+    return returnData(FAILED, 'not login', "房间不存在", None)
+
+# @api.errorhandler(Exception)
+# def ErrorExceptionHandler(err):
+#     return returnData(46001,'failed',str(err),None)
 
 # def custom_error(http_status_code, *args, **kwargs):
 #     print(http_status_code)
@@ -141,4 +150,5 @@ api.add_resource(Seats,"/seats/<int:roomId>")
 api.add_resource(Room,"/rooms")
 api.add_resource(Book,"/book/<date>/<int:roomId>/<int:seatId>/<action>/<int:arg>","/reserveseat")
 api.add_resource(AvailableDates,"/dates")
-
+api.add_resource(AutoCheckIn,"/auto/checkin")
+api.add_resource(AutoReserve,"/auto/reserve")

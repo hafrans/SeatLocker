@@ -93,3 +93,4 @@ class User(Resource):
         finally:
             if cu != None:
                cu.close() 
+

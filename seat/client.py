@@ -84,20 +84,13 @@ class SeatClient(object):
             raise Exception("Session Entity:None")
         return SeatClient.deserialize(session.get('entity'))
 
-    def __init__(self, profile={'username', 'password'}, campus=WEST_CAMPUS, autoLogin=True):
+    def __init__(self, profile={'username', 'password'}, campus=EAST_CAMPUS, autoLogin=True):
         """
             initialize instance of SeatClient.
             :param profile user's profile
             :param campus the user's region of campus 
             :param autoLogin bool auto login when initializing
         """
-
-        if campus == WEST_CAMPUS:
-            logging.info("使用的是西校的配置进行登录 %s", profile['username'])
-        elif campus == EAST_CAMPUS:
-            logging.info("使用的是东校的配置进行登录 %s", profile['username'])
-        else:
-            logging.info("使用的是其他的配置进行登录 %s (%s)", profile['username'], campus)
         self.__id = 0
         self.opener = WrappedRequest()
         self.opener.region = campus
@@ -170,6 +163,10 @@ class SeatClient(object):
                 logging.warning(
                     " [%s] %s", self.profile['username'], result)
                 raise SeatReservationException(result['message'],SeatReservationException.NOT_IN_RESERVE_TIME)
+            elif result['message'] == "许可证已过期":
+                logging.critical(
+                    " [%s] %s", self.profile['username'], result)
+                raise SeatReservationException("图书馆座位系统"+result['message'],SeatReservationException.LICENSE_EXPIRED)
 
             else:
                 logging.warning(
@@ -181,22 +178,25 @@ class SeatClient(object):
                 "无法预料的错误 [%s] %s", self.profile['username'], result['message'])
             raise Exception("Unknown Error! {0}".format(result['message']))
     
-    def getSeatRoomBundle(self,roomId,seatId,campus=WEST_CAMPUS):
+    def getSeatRoomBundle(self,roomId,seatId,campus=None):
         """
             using room id and seat id fetch all information about this seat
             :param roomId: roomid
             :param seatid: seatid 
         """
-        targetString = ""
+        if campus == None:
+            campus = self.campus
+        targetString = "西校区" if self.campus == WEST_CAMPUS else "东校区"
         roomList = self.getRoomStatus(campus)
         for i in roomList:
             if i['roomId'] == roomId:
-                targetString += str(i['floor'])+"楼"
+                targetString += str(i['floor'])+"层"
                 targetString += i['room']
                 break
         else:
             logging.warning("没找到相关房间 %d",roomId)
-            return None
+            # return None
+            raise RoomNotFoundException()
         seatList = self.getSeatsInRoomWithRoomId(roomId)
         for i in seatList['layout'].values():
             if i['type'] == 'seat' and i['id'] == seatId :
@@ -204,7 +204,8 @@ class SeatClient(object):
                 break           
         else:
             logging.warning("没找到相关座位 %d",seatId)
-            return None
+            # return None
+            raise SeatNotFoundException()
         return targetString
 
     @property
@@ -375,7 +376,7 @@ class SeatClient(object):
         }
         try:
             result = self.opener.request(ROOM_STAT, payload=payload)
-            logging.info("get free rooms %s", result)
+            logging.debug("get free rooms %s", result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())
             raise e
@@ -387,7 +388,7 @@ class SeatClient(object):
 
         # print all list
         for i in result['data']:
-            logging.info(i)
+            logging.debug(i)
 
         return result['data']
 
@@ -418,7 +419,7 @@ class SeatClient(object):
         }
         try:
             result = self.opener.request(ROOM_LAYOUT_BY_DATE, payload=payload)
-            logging.info("get seats  %s", result)
+            logging.debug("get seats  %s", result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())
             raise e
@@ -430,7 +431,7 @@ class SeatClient(object):
 
         # print all list
         for k, v in result['data'].items():
-            logging.info("%s : %s", k, v)
+            logging.debug("%s : %s", k, v)
 
         """
             id , name , cols , row12 ,layout{key:{type = 'seat' name='001' status='FREE|IN_USE?',}}
@@ -463,7 +464,7 @@ class SeatClient(object):
         }
         try:
             result = self.opener.request(START_TIME_FOR_SEAT, payload=payload)
-            logging.info("get %s  %s", self.getSeatStartTimeWithSeatId, result)
+            logging.debug("get %s  %s", self.getSeatStartTimeWithSeatId, result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())
             raise e

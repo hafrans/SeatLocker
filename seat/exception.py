@@ -13,6 +13,13 @@ class SystemMaintenanceError(Exception):
     pass
 
 
+class SeatNotFoundException(Exception):
+    pass
+
+class RoomNotFoundException(Exception):
+    pass
+
+
 class UserCredentialError(Exception):
     GENERAL_ERROR = 1
     TOKEN_EXPIRED = 2
@@ -52,6 +59,10 @@ class SeatReservationException(Exception):
 
     #不在可预约时间
     NOT_IN_RESERVE_TIME = 7
+
+
+    #许可证已过期
+    LICENSE_EXPIRED = 100
 
     def __init__(self,message,type = TIME_SPAN_ERROR):
         self.type = type
