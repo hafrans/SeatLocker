@@ -49,7 +49,7 @@ class WrappedRequest(object):
         "token": ""
     }
 
-    def __init__(self, campus=WEST_CAMPUS):
+    def __init__(self, campus):
         """
         initialize instance with correct headers
         """
@@ -68,7 +68,7 @@ class WrappedRequest(object):
        return self.__region
 
     @region.setter
-    def region(self, campus=WEST_CAMPUS):
+    def region(self, campus):
         """
           set the region of campus west or east or other
         """
@@ -76,8 +76,9 @@ class WrappedRequest(object):
         #     self.headers['X-Forwarded-For'] = campus
         # else:
         #     logging.warning("set region failed %s", str(campus))
-        if campus == WEST_CAMPUS or campus == EAST_CAMPUS:
-            self.__region = campus
+        # if campus == WEST_CAMPUS or campus == EAST_CAMPUS: #
+        #多校区折衷方案
+        self.__region = campus
 
     @property
     def token(self):
@@ -132,6 +133,7 @@ class WrappedRequest(object):
         if forwardIP == True:
             logging.debug("USING FORWARD HEAD")
             _head = self.headers.copy()
+            # TODO 要进行多校区处理
             _head['X-Forwarded-For'] = WrappedRequest.WEST_CAMPUS if self.__region == WEST_CAMPUS else WrappedRequest.EAST_CAMPUS
 
         if url_route_flag or append_mode:  # use url
