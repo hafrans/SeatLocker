@@ -84,7 +84,7 @@ class SeatClient(object):
             raise Exception("Session Entity:None")
         return SeatClient.deserialize(session.get('entity'))
 
-    def __init__(self, profile={'username', 'password'}, campus=EAST_CAMPUS, autoLogin=True):
+    def __init__(self, profile={'username', 'password'}, campus, autoLogin=True):
         """
             initialize instance of SeatClient.
             :param profile user's profile
@@ -92,8 +92,7 @@ class SeatClient(object):
             :param autoLogin bool auto login when initializing
         """
         self.__id = 0
-        self.opener = WrappedRequest()
-        self.opener.region = campus
+        self.opener = WrappedRequest(campus)
         self.profile = profile
         self.__isLogin = False
         self.__last_error_message = ""
