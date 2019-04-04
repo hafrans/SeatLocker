@@ -126,7 +126,7 @@ class Book(Resource):
                 p = SeatClient.deserialize(session.get('entity'))
                 result = p.reserveSeat(args['seatId'],startTime=args['start'],endTime=args['end'],layoutDate=args['date'],tuesdayType=True if args['tuesday'] == 1 else False)
                 ##用于座位缓存
-                cursor.execute("insert into seatinfo values (?,?,?,?)",(args['seatId'],args['roomId'],result['location'],p.opener.region,))
+                cursor.execute("insert into seatinfo (id,room,location,schoolid,school )values (?,?,?,?,?,?)",(args['seatId'],args['roomId'],result['location'],p.opener.region['id'],p.school))
                 g.db.commit()
                 ## 缓存结束
                 return returnData(OK, 'success', "预约成功！", None)
@@ -221,8 +221,11 @@ class Checkin(Resource):
             return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
         else:
             try:
-                p = SeatClient.deserialize(session.get('entity'))
                 cursor = g.db.cursor()
+                p = SeatClient.deserialize(session.get('entity'))
+                if not CAMPUS_CHECKIN_ENABLED(p.campus):
+                     return returnData(ERR_NO_ACCESS, 'failed', '您的校区暂未开通校外签到功能', None)
+                
                 result = cursor.execute(
                     "select checkin from settings where user = ? ", (p.id,)).fetchone()
                 if result == None:

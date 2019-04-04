@@ -4,7 +4,7 @@ COPY . /app/
 
 WORKDIR /app/
 
-RUN pip install flask flask_restful flask_restplus
+RUN pip install flask flask_restful flask_restplus flask_compress
 
 ENV APP_HOME=http://seat.stdio.ml
 

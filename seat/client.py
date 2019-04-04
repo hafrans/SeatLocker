@@ -46,8 +46,8 @@ class SeatClient(object):
     """
 
     @staticmethod
-    def NewClient(username, password,campus = WEST_CAMPUS):
-        return SeatClient({'username': username, 'password': password},campus=campus)
+    def NewClient(username, password,campus = CAMPUS(UNIVERSITY_OF_JINAN),school=UNIVERSITY_OF_JINAN):
+        return SeatClient({'username': username, 'password': password},campus=campus,school=school)
     
     @classmethod
     def deserialize(SeatClient,sourceObj):
@@ -57,7 +57,7 @@ class SeatClient(object):
             :return SeatClient instance
         """
         _meta = json.loads(sourceObj)
-        clazz = SeatClient(profile=_meta['profile'],campus=_meta['campus'],autoLogin=False)
+        clazz = SeatClient(profile=_meta['profile'],campus=_meta['campus'],school=_meta['school'],autoLogin=False)
         clazz.opener.token = _meta['token']
         clazz.__SeatClient__isLogin = _meta['isLogin']
         clazz.id = _meta["id"]
@@ -73,6 +73,7 @@ class SeatClient(object):
             "profile":self.profile,
             "token":self.opener.token,
             'campus':self.opener.region,
+            "school":self.school,
             "isLogin":self.__isLogin,
             "id": self.__id
         }
@@ -80,22 +81,50 @@ class SeatClient(object):
     
     @staticmethod
     def NewClientFromSession(session):
+        """
+            helper of initializing instance
+            :param session: session of flask.
+            :return a instance of SeatClient
+        """
         if session.get('entity',None) == None:
             raise Exception("Session Entity:None")
         return SeatClient.deserialize(session.get('entity'))
 
-    def __init__(self, profile={'username', 'password'}, campus, autoLogin=True):
+    @staticmethod
+    def quickCheckin(schoolName,campusId,username,password,id,sourceObj = None):
+        """
+            Helper of autochecking in. this method could reuse instance of object if it could.
+            :param schoolName: school name 
+            :param campusId: It represented an id of a campus of college of univerisity.
+        """
+        if sourceObj == None:
+            sourceObj = SeatClient.NewClient(username=username,password=password,campus=CAMPUS(schoolName,campusId),school=schoolName)
+        else:
+            if id != sourceObj.id:
+                sourceObj.profile = {'username':username,'password':password}
+                sourceObj.campus = CAMPUS(schoolName,campusId)
+                sourceObj.id = id
+                sourceObj.school = schoolName
+            sourceObj.login()
+        result = sourceObj.checkIn()
+        return sourceObj,result
+        
+
+    def __init__(self, profile, campus = CAMPUS(UNIVERSITY_OF_JINAN),school = UNIVERSITY_OF_JINAN, autoLogin=True):
         """
             initialize instance of SeatClient.
-            :param profile user's profile
+            :param profile user's profile {'username'：xxx, 'password':xxx}
             :param campus the user's region of campus 
             :param autoLogin bool auto login when initializing
         """
         self.__id = 0
-        self.opener = WrappedRequest(campus)
+        self.opener = WrappedRequest(campus,school)
         self.profile = profile
+        self.school = school
         self.__isLogin = False
         self.__last_error_message = ""
+
+        logging.info("%s 使用了 %s %s 登录。",profile['username'],SCHOOL(school)['NAME'],campus['name'])
 
         if autoLogin:
             logging.info("开启了默认登录 %s", profile['username'])
@@ -185,7 +214,7 @@ class SeatClient(object):
         """
         if campus == None:
             campus = self.campus
-        targetString = "西校区" if self.campus == WEST_CAMPUS else "东校区"
+        targetString = campus['name']
         roomList = self.getRoomStatus(campus)
         for i in roomList:
             if i['roomId'] == roomId:
@@ -357,21 +386,9 @@ class SeatClient(object):
 
         """
 
-        def checkCampus(campus):
-            if campus == None:
-                return checkCampus(self.campus)
-            if campus == "WEST_CAMPUS" or campus == WEST_CAMPUS:
-                return 2
-            elif campus == EAST_CAMPUS or campus == "EAST_CAMPUS":
-                return 1
-            else:
-                logging.warning("未知的校区错误 [%s] %s",
-                                self.profile['username'], str(campus))
-                return 1
-
         result = None
         payload = {
-            "campus": checkCampus(campus)
+            "campus": self.campus['id'] if campus == None else campus['id']
         }
         try:
             result = self.opener.request(ROOM_STAT, payload=payload)
@@ -385,10 +402,11 @@ class SeatClient(object):
 
         self.checkStatus(result)
 
-        # print all list
-        for i in result['data']:
-            logging.debug(i)
-
+        # # print all list
+        # for i in result['data']:
+        #     logging.debug(i)
+        if result['data'] == None:
+            result['data'] = []
         return result['data']
 
     def getSeatsInRoomWithRoomId(self, roomId, layoutDate=None):

@@ -20,13 +20,6 @@ class WrappedRequest(object):
         This class provides a delegation for urllib.
     """
 
-    BASE_URL = "http://seat.ujn.edu.cn"
-
-
-    EAST_CAMPUS = "10.167.149.241"  # WHO CAN PROVIDE ME A IP OF EC?
-    WEST_CAMPUS = "10.167.149.242"
-
-
     ROUTER = {
         "AUTH": "/rest/auth",
         "RESV": "/rest/v2/user/reservations",
@@ -43,18 +36,23 @@ class WrappedRequest(object):
     }
 
     __default_headers_template = {
-        "Host": urllib.parse.urlparse(BASE_URL).netloc,
+        "Host": "",
         "Connection": "Keep-Alive",
         "User-Agent": "",
-        "token": ""
+        "token": "",
+        "Accept-Encoding":"gzip, deflate",
     }
 
-    def __init__(self, campus):
+    def __init__(self, campus,school):
         """
         initialize instance with correct headers
+        campus = 必须包含（1）校区名称 （2）IP地址
         """
 
         self.headers = WrappedRequest.__default_headers_template.copy()
+        #修改BASE
+        self.headers['Host'] = urllib.parse.urlparse(BASE(school)).netloc
+        self.school = school
         self.opener = urllib.request.urlopen
         self.__region = campus
         pass
@@ -72,11 +70,6 @@ class WrappedRequest(object):
         """
           set the region of campus west or east or other
         """
-        # if re.match(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", campus):
-        #     self.headers['X-Forwarded-For'] = campus
-        # else:
-        #     logging.warning("set region failed %s", str(campus))
-        # if campus == WEST_CAMPUS or campus == EAST_CAMPUS: #
         #多校区折衷方案
         self.__region = campus
 
@@ -119,7 +112,7 @@ class WrappedRequest(object):
             _url = WrappedRequest.ROUTER.get(route, None)
             if _url == None:
                 raise AttributeError("Route name Not Found!")
-            _url = WrappedRequest.BASE_URL + _url
+            _url = BASE(self.school) + _url
         elif url != None:
             _url = url
             url_route_flag = True
@@ -134,7 +127,7 @@ class WrappedRequest(object):
             logging.debug("USING FORWARD HEAD")
             _head = self.headers.copy()
             # TODO 要进行多校区处理
-            _head['X-Forwarded-For'] = WrappedRequest.WEST_CAMPUS if self.__region == WEST_CAMPUS else WrappedRequest.EAST_CAMPUS
+            _head['X-Forwarded-For'] = self.__region['IP']
 
         if url_route_flag or append_mode:  # use url
             request = urllib.request.Request(
