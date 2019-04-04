@@ -19,5 +19,17 @@ SERVER_FAILED = 500
 SYSTEM_MAINTENANCE = 501
 
 
+
+########### log
+
+LOG_ERR_CHECKIN = 11
+LOG_STATUS_CHECKIN = 10
+LOG_OK_CHECKIN = 10
+
+
+
+#########
+
+
 class UserNotLoginError(Exception):
     pass

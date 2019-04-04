@@ -11,6 +11,7 @@ from seat.__future__ import *
 from flask import Flask
 from flask import session,abort,g,logging
 from flask_restplus import Resource, Api
+from flask_compress import Compress
 from .basic import *
 from .account import *
 from .premium import *
@@ -20,9 +21,11 @@ from werkzeug.exceptions import HTTPException
 from sqlite3 import Row
 
 
+
 __all__ = ['app']
 
 app = Flask(__name__)
+Compress(app)
 api = Api(app,doc=False,)
 
 
@@ -62,7 +65,7 @@ logging.logging.debug("--------database------initializtion------------------")
 ##################################
 # Database Initialized
 ##################################
-
+ 
 
 def openDatabase():
     if getattr(g,"db",None) == None:
@@ -152,3 +155,5 @@ api.add_resource(Book,"/book/<date>/<int:roomId>/<int:seatId>/<action>/<int:arg>
 api.add_resource(AvailableDates,"/dates")
 api.add_resource(AutoCheckIn,"/auto/checkin")
 api.add_resource(AutoReserve,"/auto/reserve")
+api.add_resource(Campus,"/info/campus")
+api.add_resource(School,"/info/school")

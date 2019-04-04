@@ -13,6 +13,9 @@ sys.path.append("..")
 PREMIUM_SEATS = 10
 PREMIUM_DATES = 0
 
+PREMIUM_CHECKIN = 1
+PREMIUM_CHECKIN_AUTO = 2
+
 
 class AutoCheckIn(Resource):
     """
@@ -34,7 +37,7 @@ class AutoCheckIn(Resource):
                 "select * from settings where user = ?", (p.id,)).fetchone()
             if result == None:
                 raise Exception("Data Base Error")
-            return returnData(OK, "success", "获取成功", {'result': result['checkin'], 'switch': result['auto_checkin']})
+            return returnData(OK, "success", "获取成功", {'result': result['checkin'], 'switch': result['auto_checkin'] == p.campus['id'],'support':CAMPUS_CHECKIN_ENABLED(p.campus)})
         except Exception as e:
             raise e
         finally:
@@ -56,14 +59,14 @@ class AutoCheckIn(Resource):
                 return returnData(FAILED, "failed", "您暂无权限使用该项业务！", None)
             if result['checkin'] == 0:
                 return returnData(FAILED, "failed", "您的使用次数已经使用完毕", None)
-            if args['action'] == 0 and result['auto_checkin'] == 1:
+            if args['action'] == 0 and result['auto_checkin'] != 0: #是否可以关闭
                 cursor.execute(
                     "update settings set auto_checkin = 0 where user = ? ", (p.id,))
                 g.db.commit()
                 return returnData(OK, "success", "设置成功！", None)
-            if args['action'] == 1 and result['auto_checkin'] == 0:
+            if args['action'] == 1 and result['auto_checkin'] != p.campus['id']:#是否可以开启
                 cursor.execute(
-                    "update settings set auto_checkin = 1 where user = ? ", (p.id,))
+                    "update settings set auto_checkin = ? where user = ? ", (p.campus['id'],p.id,))
                 g.db.commit()
                 return returnData(OK, "success", "设置成功！", None)
 
