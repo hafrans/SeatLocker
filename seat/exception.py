@@ -23,6 +23,7 @@ class RoomNotFoundException(Exception):
 class UserCredentialError(Exception):
     GENERAL_ERROR = 1
     TOKEN_EXPIRED = 2
+    USER_LOCKED   = 3
     def __init__(self,message,type = GENERAL_ERROR):
         self.type = type
         self.message = message

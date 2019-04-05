@@ -47,8 +47,7 @@ class User(Resource):
         
     
     def get(self):
-        simpleCheckLogin(session)
-        p = SeatClient.deserialize(session.get('entity'))
+        p = simpleCheckLogin(session)
         p.getReservations() #检查与服务器的连接性
         _meta = json.loads(session.get('entity',None))
         cursor = g.db.cursor()
@@ -107,7 +106,7 @@ class User(Resource):
                 if result['lock'] == 1:
                     cu.execute("insert into log (user,jigann,content) values (?,?,?)",(_id,current_time,"["+args['schoolkey']+","+username+"]用户被系统锁定，并尝试登录"))
                     g.db.commit() 
-                    raise UserCredentialError("用户被本系统锁定，请联系管理员！",UserCredentialError.GENERAL_ERROR)   
+                    raise UserCredentialError("用户被本系统锁定，请联系管理员！",UserCredentialError.USER_LOCKED)   
                 #update log
                 cu.execute("insert into log (user,jigann,content) values (?,?,?)",(_id,current_time,"["+args['schoolkey']+","+username+"]成功登录"))
                 g.db.commit()        

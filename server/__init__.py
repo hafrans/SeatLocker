@@ -106,7 +106,9 @@ def teardown_request(exception):
 def UserCredentialErrorHandler(err):
     if err == UserCredentialError.TOKEN_EXPIRED:
         invalidate(session)
-        return returnData(ERR_LOGIN, 'not login', "令牌失效,请重新登录", None)
+        return returnData(ERR_LOGIN, 'not login', "令牌失效,请重新登录!", None)
+    elif err == UserCredentialError.USER_LOCKED:
+        return returnData(ERR_LOGIN, 'not login', err.message,None)
     else:
         return returnData(ERR_LOGIN, 'not login', "用户名或者密码有误",None)
 
@@ -121,7 +123,7 @@ def SystemMaintenanceErrorHandler(err):
 
 @api.errorhandler(UserNotLoginError)
 def UserNotLoginErrorHandler(err):
-    return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+    return returnData(ERR_NOT_LOGIN, 'not login', "用户未登录", None)
 
 @api.errorhandler(SeatNotFoundException)
 def SeatNotFoundExceptionHandler(err):

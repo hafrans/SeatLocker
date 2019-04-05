@@ -22,7 +22,7 @@ class Room(Resource):
 
     def get(self):
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             p = SeatClient.deserialize(session.get('entity'))
             result = p.getRoomStatus()
@@ -33,26 +33,10 @@ class AvailableDates(Resource):
          pass
 
     def get(self):
-        if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
-        else:
-            try:
-                p = SeatClient.deserialize(session.get('entity'))
-                result = p.getReservationAvailableDates()
-                return returnData(OK, 'success', "ok", result)
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
-            except Exception as err:
-                raise err
+        p = simpleCheckLogin(session)
+        result = p.getReservationAvailableDates()
+        return returnData(OK, 'success', "ok", result)
+        
 
 
 
@@ -82,7 +66,7 @@ class Book(Resource):
 
     def get(self, date, roomId, seatId, action, arg):
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 if date != None:
@@ -98,27 +82,15 @@ class Book(Resource):
                     return returnData(OK, 'success', "end", result)
                 else:
                     return returnData(FAILED, 'something not specified', "指令不完整", None)
-
-            except UserCredentialError as err:
-                if err == UserCredentialError.TOKEN_EXPIRED:
-                    invalidate(session)
-                    return returnData(ERR_LOGIN, 'not login', "令牌失效", None)
-                else:
-                    return returnData(ERR_LOGIN, 'not login', "其他原因({0})".format(err.type), None)
             except ValueError as err:
                 return returnData(FAILED, 'failed', "日期格式不合法", None)
-            except NetWorkException as err:
-                invalidate(session)
-                return returnData(500,'failed',"目标服务器主机繁忙，请稍后再试",None)
-            except SystemMaintenanceError as err:
-                return returnData(501,'failed',"服务器正在维护中，请稍后再试",None)
             except Exception as err:
                 raise err
 
     def post(self):
         args = self.parser.parse_args()
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 cursor = g.db.cursor()
@@ -126,7 +98,7 @@ class Book(Resource):
                 p = SeatClient.deserialize(session.get('entity'))
                 result = p.reserveSeat(args['seatId'],startTime=args['start'],endTime=args['end'],layoutDate=args['date'],tuesdayType=True if args['tuesday'] == 1 else False)
                 ##用于座位缓存
-                cursor.execute("insert into seatinfo (id,room,location,schoolid,school )values (?,?,?,?,?,?)",(args['seatId'],args['roomId'],result['location'],p.opener.region['id'],p.school))
+                cursor.execute("insert into seatinfo (id,room,name,schoolid,school )values (?,?,?,?,?)",(args['seatId'],args['roomId'],result['location'],p.opener.region['id'],p.school))
                 g.db.commit()
                 ## 缓存结束
                 return returnData(OK, 'success', "预约成功！", None)
@@ -169,7 +141,7 @@ class Seats(Resource):
         if roomId == None:
             return returnData(FAILED, 'roomId is empty', "ROOMID 不正确，判定非正常访问", None)
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 p = SeatClient.deserialize(session.get('entity'))
@@ -196,7 +168,7 @@ class History(Resource):
             获取
         """
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 p = SeatClient.deserialize(session.get('entity'))
@@ -218,7 +190,7 @@ class Checkin(Resource):
             预约
         """
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 cursor = g.db.cursor()
@@ -273,7 +245,7 @@ class Checkin(Resource):
             停止使用
         """
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 p = SeatClient.deserialize(session.get('entity'))
@@ -307,22 +279,21 @@ class Reservation(Resource):
            'actualBegin': '16:14', 'awayBegin': None, 'awayEnd': None, 
            'userEnded': False, 'message': ''}
         """
-        if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
-        else:
-            try:
-                p = SeatClient.deserialize(session.get('entity'))
-                result = p.getReservations()
-                if len(result) == 0:
-                    return returnData(DATA_EMPTY, 'success', '暂时没有今日预约', None)
-                return returnData(OK, 'success', 'none', result[0])
-            except SeatReservationException as err:
-                if err == SeatReservationException.RESERVE_CANCEL_INVALIDED:
-                    return returnData(FAILED, 'failed', "无效预约", None)
-                elif err == SeatReservationException.RESERVE_HAVE_CANCELED:
-                    return returnData(FAILED, 'failed', "预约已被取消，不可重复取消", None)
-            except Exception as err:
-                raise err
+        p = simpleCheckLogin(session)
+        try:
+            p = SeatClient.deserialize(session.get('entity'))
+            result = p.getReservations()
+            if len(result) == 0:
+                return returnData(DATA_EMPTY, 'success', '暂时没有今日预约', None)
+            return returnData(OK, 'success', 'none', result[0])
+        except SeatReservationException as err:
+            if err == SeatReservationException.RESERVE_CANCEL_INVALIDED:
+                return returnData(FAILED, 'failed', "无效预约", None)
+            elif err == SeatReservationException.RESERVE_HAVE_CANCELED:
+                return returnData(FAILED, 'failed', "预约已被取消，不可重复取消", None)
+        except Exception as err:
+            raise err
+            
 
     def post(self):
         pass
@@ -333,7 +304,7 @@ class Reservation(Resource):
         """
         args = self.parser.parse_args()
         if session.get("entity", None) == None:
-            return returnData(ERR_LOGIN, 'not login', "用户未登录", None)
+            raise UserNotLoginError()
         else:
             try:
                 p = SeatClient.deserialize(session.get('entity'))
