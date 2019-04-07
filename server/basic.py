@@ -9,9 +9,6 @@ from flask import session, jsonify, g
 from datetime import datetime
 from seat.__future__ import *
 
-
-
-
 class Room(Resource):
     """
         FetchAll Room status
@@ -126,9 +123,6 @@ class Book(Resource):
     pass
 
 
-class Other(Resource):
-    pass
-
 
 class Seats(Resource):
 
@@ -153,11 +147,6 @@ class Seats(Resource):
                 return returnData(OK, 'success', "success", _result)
             except Exception as err:
                 raise err
-
-
-class RemoteAffairs(Resource):
-    pass
-
 
 class History(Resource):
     def __init__(self,api):

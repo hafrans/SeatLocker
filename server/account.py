@@ -107,6 +107,7 @@ class User(Resource):
                     cu.execute("insert into log (user,jigann,content) values (?,?,?)",(_id,current_time,"["+args['schoolkey']+","+username+"]用户被系统锁定，并尝试登录"))
                     g.db.commit() 
                     raise UserCredentialError("用户被本系统锁定，请联系管理员！",UserCredentialError.USER_LOCKED)   
+                cu.execute("update users set token = ? where id = ?", (p.token,_id))
                 #update log
                 cu.execute("insert into log (user,jigann,content) values (?,?,?)",(_id,current_time,"["+args['schoolkey']+","+username+"]成功登录"))
                 g.db.commit()        

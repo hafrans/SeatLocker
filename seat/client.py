@@ -11,10 +11,12 @@ import urllib.request
 import re
 import json
 import logging
-from datetime import datetime, timedelta, time
+import threading
+from datetime import datetime, timedelta
 from .exception import *
 from .request import *
 from .constant import *
+import time
 
 __all__ = ['SeatClient']
 
@@ -46,8 +48,8 @@ class SeatClient(object):
     """
 
     @staticmethod
-    def NewClient(username, password,campus = CAMPUS(UNIVERSITY_OF_JINAN),school=UNIVERSITY_OF_JINAN):
-        return SeatClient({'username': username, 'password': password},campus=campus,school=school)
+    def NewClient(username, password,campus = CAMPUS(UNIVERSITY_OF_JINAN),school=UNIVERSITY_OF_JINAN,token=None):
+        return SeatClient({'username': username, 'password': password},campus=campus,school=school,token=token)
     
     @classmethod
     def deserialize(SeatClient,sourceObj):
@@ -91,14 +93,14 @@ class SeatClient(object):
         return SeatClient.deserialize(session.get('entity'))
 
     @staticmethod
-    def quickCheckin(schoolName,campusId,username,password,id,sourceObj = None):
+    def quickCheckin(schoolName,campusId,username,password,id,token,sourceObj = None):
         """
             Helper of autochecking in. this method could reuse instance of object if it could.
             :param schoolName: school name 
             :param campusId: It represented an id of a campus of college of univerisity.
         """
         if sourceObj == None:
-            sourceObj = SeatClient.NewClient(username=username,password=password,campus=CAMPUS(schoolName,campusId),school=schoolName)
+            sourceObj = SeatClient.NewClient(username=username,password=password,campus=CAMPUS(schoolName,campusId),school=schoolName,token=token)
         else:
             if id != sourceObj.id:
                 sourceObj.profile = {'username':username,'password':password}
@@ -110,7 +112,7 @@ class SeatClient(object):
         return sourceObj,result
         
 
-    def __init__(self, profile, campus = CAMPUS(UNIVERSITY_OF_JINAN),school = UNIVERSITY_OF_JINAN, autoLogin=True):
+    def __init__(self, profile, campus = CAMPUS(UNIVERSITY_OF_JINAN),school = UNIVERSITY_OF_JINAN, autoLogin=True,token=None):
         """
             initialize instance of SeatClient.
             :param profile user's profile {'username'：xxx, 'password':xxx}
@@ -123,6 +125,7 @@ class SeatClient(object):
         self.school = school
         self.__isLogin = False
         self.__last_error_message = ""
+        self.token = token
 
         logging.info("%s 使用了 %s %s 登录。",profile['username'],SCHOOL(school)['NAME'],campus['name'])
 
@@ -272,27 +275,48 @@ class SeatClient(object):
 
         """
         result = None
-        try:
-            result = self.opener.request(
-                AUTH, payload=self.profile, append_mode=True)
-            logging.info(result)
-        except NetWorkException as e:
-            logging.warning("网络异常 %s", e.__str__())
-            raise e
-        except Exception as e:
-            logging.error("未知异常 %s", e.__str__())
-            raise e
-
-        if self.checkStatus(result):
-            # 登录成功
-            logging.info(
-                "登录成功 [%s] %s", self.profile['username'], result['data']['token'])
-            # 保存用户token
-            self.token = result['data']['token']
-            self.__isLogin = True
-            return True
+        def checkMe(result):
+            if self.checkStatus(result):
+                # 登录成功
+                logging.info(
+                    "登录成功 [%s] %s", self.profile['username'], result['data']['token'])
+                # 保存用户token
+                self.token = result['data']['token']
+                self.__isLogin = True
+                return True
+            else:
+                return False
+            
+        if self.token != None: #测试一下是否OK
+            try:
+                self.getReservationAvailableDates()
+                logging.info(
+                    "使用存活TOKEN 登录成功 [%s] %s", self.profile['username'])
+                return True
+            except:
+                try:
+                    result = self.opener.request(
+                        AUTH, payload=self.profile, append_mode=True)
+                    logging.info(result)
+                except NetWorkException as e:
+                    logging.warning("网络异常 %s", e.__str__())
+                    raise e
+                except Exception as e:
+                    logging.error("未知异常 %s", e.__str__())
+                    raise e
         else:
-            return False
+            try:
+                result = self.opener.request(
+                    AUTH, payload=self.profile, append_mode=True)
+                logging.info(result)
+            except NetWorkException as e:
+                logging.warning("网络异常 %s", e.__str__())
+                raise e
+            except Exception as e:
+                logging.error("未知异常 %s", e.__str__())
+                raise e
+        checkMe(result)
+        
 
     def getReservations(self):
         """
@@ -616,7 +640,18 @@ class SeatClient(object):
            注意：某些账户，进入图书馆不需要手动签到就可以自动签
            要先通过getreservations获得status 是不是 RESERVE,或者CHECK_IN
         """
-
+        """
+            尝试执行几次，因为第一次使用不会提示正确预约
+        """
+        def doMoreWork(p):
+            try:
+                for _ in range(3):
+                    p.opener.request(RESERVATIONS,forwardIP=True)
+                    time.sleep(2)
+                    p.checkStatus(p.opener.request(CHECK_IN,forwardIP=True))
+                    time.sleep(2)
+            except:
+                pass
         """
         两次获取，看看会不会自动签到
         """
@@ -624,10 +659,12 @@ class SeatClient(object):
         if  len(_tmp_result) > 0 and  _tmp_result[0]['status'] == "CHECK_IN":
             logging.info("已经实现自动签到 %s", self.checkIn)
             raise SeatReservationException("已经签到成功，无需再次签到",SeatReservationException.RESERVE_HAVE_CHECKEDIN)
-
+        if  len(_tmp_result) == 0:
+            raise SeatReservationException("无可用预约",SeatReservationException.NO_AVAILABLE_RESERVATIONS)
         result = None
         try:
             result = self.opener.request(CHECK_IN,forwardIP=True)
+            threading.Thread(target=doMoreWork,args=(self,)).start()
             logging.info("get %s  %s", self.checkIn, result)
         except NetWorkException as e:
             logging.warning("网络异常 %s", e.__str__())

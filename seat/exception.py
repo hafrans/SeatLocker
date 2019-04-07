@@ -44,8 +44,8 @@ class SeatReservationException(Exception):
     TIME_SPAN_ERROR = 0
     #已经有一个预约了 
     HAVE_RESERVED = 1 
-    # 位置被抢
-    FAILED_RESERVED = 2 
+   
+    FAILED_RESERVED = 2  # 位置被抢
     # 无可用预约 
     NO_AVAILABLE_RESERVATIONS = 3 
     # 该IP不允许操作

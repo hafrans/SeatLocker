@@ -57,10 +57,6 @@ class WrappedRequest(object):
         self.__region = campus
         pass
 
-    @staticmethod
-    def makeQuickCheckIn(token):
-        pass
-
     @property
     def region(self):
        return self.__region
@@ -86,11 +82,11 @@ class WrappedRequest(object):
         set token
         :param token the token you will set.
         """
-        if len(token) < 5:
-            return False
+        if token == None:
+            self.headers['token'] = "JBE4DNO9BW040718486"
         else:
             self.headers['token'] = token
-            return True
+        return True
 
     def urlencode(self, payload={}, charset="UTF-8"):
         return urllib.parse.urlencode(payload, encoding=charset)
@@ -124,7 +120,7 @@ class WrappedRequest(object):
             _post = str.encode(self.urlencode(post), encoding='UTF-8')
 
         if forwardIP == True:
-            logging.debug("USING FORWARD HEAD")
+            # logging.debug("USING FORWARD HEAD")
             _head = self.headers.copy()
             # TODO 要进行多校区处理
             _head['X-Forwarded-For'] = self.__region['IP']

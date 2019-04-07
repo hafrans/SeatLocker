@@ -37,7 +37,7 @@ class AutoCheckIn(Resource):
                 "select * from settings where user = ?", (p.id,)).fetchone()
             if result == None:
                 raise Exception("Data Base Error")
-            return returnData(OK, "success", "获取成功", {'result': result['checkin'], 'switch': result['auto_checkin'] == p.campus['id'],'support':CAMPUS_CHECKIN_ENABLED(p.campus)})
+            return returnData(OK, "success", "获取成功", {'currentprice':PREMIUM_CHECKIN_AUTO,'result': result['checkin'], 'switch': result['auto_checkin'] == p.campus['id'],'support':CAMPUS_CHECKIN_ENABLED(p.campus)})
         except Exception as e:
             raise e
         finally:
@@ -79,6 +79,23 @@ class AutoCheckIn(Resource):
 
     def delete(self):
         pass
+    def patch(self):
+        p = simpleCheckLogin(session)
+        cursor = g.db.cursor()
+        try:
+            result = cursor.execute(
+                "select * from log where user = ?  and (type = 10 or type = 11) order  by jigann desc LIMIT 15", (p.id,)).fetchall()
+            if result == None:
+                raise Exception("Data Base Error")
+            """
+             fetch result from database first.
+            """
+            return returnData(OK, "success", "OK", [dict(x) for x in result])
+
+        finally:
+            g.db.commit()
+            cursor.close()
+
 
 
 class AutoReserve(Resource):
@@ -103,6 +120,10 @@ class AutoReserve(Resource):
             "tuesday", type=int, help="请输入周二策略", required=True)
         self.parser_post.add_argument(
             "priority", type=int, help="请输入优先级", required=True)
+        ########################################
+        self.parser2 = reqparse.RequestParser()
+        self.parser2.add_argument(
+            "action", type=int, help="请输入正确的参数！有攻击嫌疑。", required=True)
 
     def get(self):
         """
@@ -115,13 +136,48 @@ class AutoReserve(Resource):
                 "select * from settings where user = ? ", (p.id,)).fetchone()
             seats = cursor.execute(
                 "select * from seat where user = ? order by priority asc , add_date desc", (p.id,)).fetchall()
-            return returnData(OK, "success", "获取成功", {'config': {'reserve': settings['reserve'], 'maximum': PREMIUM_SEATS}, 'seats': [dict(x) for x in seats]})
+            return returnData(OK, "success", "获取成功", {'config': {'reserve': settings['reserve'],'autoreserve':True if settings['auto_reserve'] else False, 'maximum': PREMIUM_SEATS}, 'seats': [dict(x) for x in seats]})
+        finally:
+            g.db.commit()
+            cursor.close()
+        pass
+    
+    def post(self):
+        p = simpleCheckLogin(session)
+        args = self.parser2.parse_args()
+        cursor = g.db.cursor()
+        try:
+            result = cursor.execute(
+                "select * from settings where user = ? ", (p.id,)).fetchone()
+            if result == None:
+                raise Exception("Data Base Error")
+            """
+             fetch result from database first.
+            """
+            if result['reserve'] == -2:
+                return returnData(FAILED, "failed", "您暂无权限使用该项业务！", None)
+            if result['reserve'] == 0:
+                return returnData(FAILED, "failed", "您的使用次数已经使用完毕", None)
+            if args['action'] == 0 and result['auto_reserve'] != 0: #是否可以关闭
+                cursor.execute(
+                    "update settings set auto_reserve = 0 where user = ? ", (p.id,))
+                g.db.commit()
+                return returnData(OK, "success", "设置成功！", None)
+            if args['action'] == 1 and result['auto_reserve'] == 0:#是否可以开启
+                cursor.execute(
+                    "update settings set auto_reserve = 1 where user = ? ", (p.id,))
+                g.db.commit()
+                return returnData(OK, "success", "设置成功！", None)
+
+            return returnData(OK, "success", "设置失败，设置未修改", None)
+
         finally:
             g.db.commit()
             cursor.close()
         pass
 
-    def post(self):
+
+    def put(self):
         """
          新增
         """

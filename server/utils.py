@@ -4,8 +4,12 @@ from .error import UserNotLoginError
 from seat.__future__ import SeatClient
 import sys
 from flask import logging
-from datetime import datetime
+from datetime import datetime,timezone, timedelta
 sys.path.append("..")
+import pytz
+from urllib import request
+from email.utils import parsedate
+
 
 headers = {
     "Access-Control-Allow-Headers": "X-Requested-With, accept, content-type, *",
@@ -54,6 +58,9 @@ def returnData(code, status, message, kwargs):
 def parseDate(date):
     return date.replace(microsecond=0)
 
+def parseDateWithTz(date):
+    return date.replace(tzinfo=timezone(timedelta(hours=+8)),microsecond=0)
+
 
 def invalidate(session):
     session['entity'] = None
@@ -69,3 +76,10 @@ def logToDB(g,p,type,content):
     cursor.execute("insert into log (user , jigann , content , type )",(p.id,datetime.today().date().__str__(),content,int(type)))
     g.db.commit()
     cursor.close()
+
+def getServerTimePRC(url):
+    result = request.urlopen(url)
+    rawDatetime = result.headers['Date']
+    utctime = parsedate(rawDatetime)
+    rawDatetimeObject = datetime(*utctime[:6])
+    return rawDatetimeObject.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone('PRC'))
