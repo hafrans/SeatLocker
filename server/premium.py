@@ -1,5 +1,5 @@
 from seat.__future__ import *
-from datetime import datetime
+from datetime import datetime,timedelta
 from flask import session, jsonify, g
 from flask_restplus import Resource
 from flask_restful import reqparse
@@ -7,6 +7,7 @@ from .utils import *
 from .error import *
 import json
 import sys
+import time
 sys.path.append("..")
 
 
@@ -253,6 +254,24 @@ class AutoReserve(Resource):
             cursor.close()
         pass
 
+    def patch(self):
+        p = simpleCheckLogin(session)
+        cursor = g.db.cursor()
+        try:
+            result = cursor.execute(
+                "select * from log where user = ?  and (type = 20 or type = 21) order  by jigann desc LIMIT 15", (p.id,)).fetchall()
+            if result == None:
+                raise Exception("Data Base Error")
+            """
+             fetch result from database first.
+            """
+            return returnData(OK, "success", "OK", [dict(x) for x in result])
+
+        finally:
+            g.db.commit()
+            cursor.close()
+
+
 
 """
 template:
@@ -268,3 +287,71 @@ template:
             cursor.close()
         pass
 """
+
+class GiftCode(Resource):
+    def __init__(self, api):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("code",required=True,help="请填写GIFT CODE！",type=str)
+    
+    def post(self):
+        #check freq
+        args = self.parser.parse_args()
+        lastTime = session.get("gift_time",0)
+        if (int(time.time()) - int(lastTime) ) < 3:
+            return returnData(FAILED,"failed",'您的动作太快，请稍后再试！',None)
+        else:
+            session['gift_time'] = int(time.time()) #设置时间
+        p = simpleCheckLogin(session)
+        #read code
+        cursor = g.db.cursor()
+        try:
+            result = cursor.execute("select * from giftcode where code = ?",(args['code'],)).fetchone()
+            if result == None:
+                return returnData(FAILED,"failed",'GIFT CODE 无效',None)
+            if result['remaining'] <= 0:
+                return returnData(FAILED,"failed",'抱歉，GIFT CODE 名额已满，请换一个再试',None)
+            _time_now = datetime.today().replace(hour=0,minute=0,second=0,microsecond=0)
+            _code_start = datetime.fromisoformat(result['startdate'])
+            if _code_start > _time_now:
+                return returnData(FAILED,"failed",'抱歉，GIFT CODE 未到放出时间',None)
+            _code_end = datetime.fromisoformat(result['enddate'])
+            if _code_end < _time_now:
+                return returnData(FAILED,"failed",'抱歉，GIFT CODE 已过期',None)
+            _lastlog = cursor.execute("select * from giftcode_log where code = ? and user = ? order by time desc limit 1",(args['code'],p.id,)).fetchone()
+            if _lastlog != None:
+                #转换成时间
+                if result['cycle'] == 0:
+                    return returnData(FAILED,"failed",'抱歉，该CODE已被您使用！',None)
+                usetime = datetime.fromisoformat(_lastlog['time']) 
+                if (datetime.today() - usetime + timedelta(hours=2)).days < result['cycle']:
+                    return returnData(FAILED,"failed",'抱歉，您最近使用过这个CODE了，如果是周期性CODE，请等些时间再试！',None)
+            _usersetting = cursor.execute("select * from settings where user = ?",(p.id,)).fetchone()
+            _changed_checkin = _usersetting['checkin']
+            _changed_reserve = _usersetting['reserve']
+            #使用code
+            with g.db:
+                cursor.execute("insert into giftcode_log (user,code,time) values(?,?,?)",(p.id,args['code'],str(parseDate(datetime.today())),))
+                cursor.execute("update giftcode set remaining = ? where code = ?",(result['remaining'] -1 ,args['code'],))
+                if _usersetting['checkin'] >= 0:
+                    _changed_checkin += result['checkin']
+                if _usersetting['reserve'] >= 0:
+                    _changed_reserve += result['reserve']
+                if _usersetting['checkin'] == -2:
+                    _changed_checkin = result['checkin']
+                if _usersetting['reserve'] == -2:
+                    _changed_reserve = result['reserve']
+                if _usersetting['checkin'] == -1:
+                    _changed_checkin = -1
+                if _usersetting['reserve'] == -1:
+                    _changed_reserve = -1
+                cursor.execute("update settings set checkin = ?, reserve = ? where user = ? ",(_changed_checkin,_changed_reserve,p.id,))
+            return returnData(OK,"success",'使用成功，增加签到点数{0}，预约点数{1}'.format(result['checkin'],result['reserve']),None)
+        except Exception as e:
+            raise e
+        finally:
+            cursor.close()
+                
+
+
+
+        

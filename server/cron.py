@@ -93,7 +93,7 @@ SQL_ALL_RESERVATION_SEATS = """
                     e.priority as priority,
                     e.tuesday as tuesday
                 from settings as s inner join seat as e on s.user = e.user
-                where (julianday('now') > julianday(e.start_date)  or ( e.end_date is null and julianday('now') < julianday(e.end_date)) ) and s.reserve != -2 and s.auto_reserve = 1 and e.user = ? order by e.priority desc, e.id asc
+                where (julianday('now') >= julianday(e.start_date)  or ( e.end_date is null and julianday('now') < julianday(e.end_date)) ) and s.reserve != -2 and s.auto_reserve = 1 and e.user = ? order by e.priority desc, e.id asc
 
 """
 ##################################################################################
@@ -458,7 +458,7 @@ def logToRemote(server,userinfo,content,typz = 0):
     """
      向远程写数据库，
     """
-    localExecuteProxy(server,"insert into log (user,jigann,content,type) values(?,?,?,?)",(userinfo['id'],datetime.today().__str__(),"[{0},{1}]操作失败，{2}".format(userinfo['username'],userinfo['school'],content),typz))
+    localExecuteProxy(server,"insert into log (user,jigann,content,type) values(?,?,?,?)",(userinfo['id'],datetime.today().__str__(),"[{0},{1}]{2}".format(userinfo['username'],userinfo['school'],content),typz))
     
 
 def localExecuteProxy(server,sqlstr,args):

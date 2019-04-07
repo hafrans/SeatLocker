@@ -17,6 +17,7 @@ from .exception import *
 from .request import *
 from .constant import *
 import time
+from .tuesday import *
 
 __all__ = ['SeatClient']
 
@@ -290,8 +291,7 @@ class SeatClient(object):
         if self.token != None: #测试一下是否OK
             try:
                 self.getReservationAvailableDates()
-                logging.info(
-                    "使用存活TOKEN 登录成功 [%s] %s", self.profile['username'])
+                logging.info("使用存活TOKEN 登录成功 [%s]", self.profile['username'])
                 return True
             except:
                 try:
@@ -587,30 +587,31 @@ class SeatClient(object):
                           self.profile['username'], layoutDate, startTime, endTime)
             raise SeatReservationException("初始结束时间不合法！",SeatReservationException.TIME_SPAN_ERROR)
         # 判断周二策略
-        if datetime(*[int(x) for x in layoutDate.split('-')]).weekday() == 1:
-            logging.info("现在是周二")
-            if startTime >= 720 and endTime <= 960:
-                logging.error("周二无法在您规定时间段内预约座位 %s [%s] ([%s] %s %s)", self.reserveSeat,
-                              self.profile['username'], layoutDate, startTime, endTime)
-                raise SeatReservationException("周二无法在您规定时间段内预约座位！",SeatReservationException.TIME_SPAN_ERROR)
-            if tuesdayType == True:  # 执行上午策略
-                logging.info("执行上午策略")
-                if startTime < 720 and endTime >= 720:
-                    endTime = 720
-            else:  # 下午策略
-                logging.info("执行下午策略")
-                if startTime < 960 and endTime >= 960:
-                    startTime = 960
-            # 最终处理
-            if endTime > 720 and endTime < 960:
-                endTime = 720
-            if startTime > 720 and startTime < 960:
-                startTime = 960
+        # if datetime(*[int(x) for x in layoutDate.split('-')]).weekday() == 1:
+        #     logging.info("现在是周二")
+        #     if startTime >= 720 and endTime <= 960:
+        #         logging.error("周二无法在您规定时间段内预约座位 %s [%s] ([%s] %s %s)", self.reserveSeat,
+        #                       self.profile['username'], layoutDate, startTime, endTime)
+        #         raise SeatReservationException("周二无法在您规定时间段内预约座位！",SeatReservationException.TIME_SPAN_ERROR)
+        #     if tuesdayType == True:  # 执行上午策略
+        #         logging.info("执行上午策略")
+        #         if startTime < 720 and endTime >= 720:
+        #             endTime = 720
+        #     else:  # 下午策略
+        #         logging.info("执行下午策略")
+        #         if startTime < 960 and endTime >= 960:
+        #             startTime = 960
+        #     # 最终处理
+        #     if endTime > 720 and endTime < 960:
+        #         endTime = 720
+        #     if startTime > 720 and startTime < 960:
+        #         startTime = 960
 
-        if startTime >= endTime:  # 判断处理后的时间是否合法
-            logging.error("处理后初始结束时间不合法（2）！%s [%s] ([%s] %s %s)", self.reserveSeat,
-                          self.profile['username'], layoutDate, startTime, endTime)
-            raise SeatReservationException("初始结束时间不合法！",SeatReservationException.TIME_SPAN_ERROR)
+        # if startTime >= endTime:  # 判断处理后的时间是否合法
+        #     logging.error("处理后初始结束时间不合法（2）！%s [%s] ([%s] %s %s)", self.reserveSeat,
+        #                   self.profile['username'], layoutDate, startTime, endTime)
+        #     raise SeatReservationException("初始结束时间不合法！",SeatReservationException.TIME_SPAN_ERROR)
+        startTime,endTime = TUESDAY_STRATEGY(self.school)(layoutDate,startTime,endTime,tuesdayType)
         logging.debug("最终时间 %s [%s] ([%s] %s %s)", self.reserveSeat,
                       self.profile['username'], layoutDate, startTime, endTime)
         postForm = {
