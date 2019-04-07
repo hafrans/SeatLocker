@@ -185,7 +185,7 @@ def spawnProcess(processNumber):
         processNumber = os.cpu_count()
         if processNumber == None:
             processNumber = 1
-     _fin_n = 2 if processNumber <= 2 else processNumber
+    _fin_n = 2 if processNumber <= 2 else processNumber
     logging.info("use {0} processes".format(processNumber))
     _pool = Pool(processes = _fin_n) #进程池
     for i in range(_fin_n):
