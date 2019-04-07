@@ -1,6 +1,9 @@
 FROM mdiazipass/alpine3.8-python3.7-bash
 
-COPY . /app/
+COPY ./data /app/
+COPY ./seat /app/
+COPY ./server /app/
+COPY ./test.py /app/
 
 WORKDIR /app/
 

@@ -187,7 +187,8 @@ def spawnProcess(processNumber):
             processNumber = 1
     logging.info("use {0} processes".format(processNumber))
     _pool = Pool(processes = processNumber) #进程池
-    for i in range(int(processNumber / 2)):
+    _fin_n = 2 if processNumber <= 2 else processNumber
+    for i in range(_fin_n):
         _pool.apply_async(doAutoCheckinWork)
         _pool.apply_async(doAutoReserveWork)
     logging.info("进程部署完毕")
