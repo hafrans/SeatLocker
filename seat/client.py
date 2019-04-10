@@ -1,7 +1,7 @@
 
 """
     Future Features of Seat Client
-
+    
 """
 
 
@@ -99,6 +99,9 @@ class SeatClient(object):
             Helper of autochecking in. this method could reuse instance of object if it could.
             :param schoolName: school name 
             :param campusId: It represented an id of a campus of college of univerisity.
+           
+              BUG (ME): 当大量执行时，会出现复用异常。
+           
         """
         if sourceObj == None:
             sourceObj = SeatClient.NewClient(username=username,password=password,campus=CAMPUS(schoolName,campusId),school=schoolName,token=token)
@@ -647,6 +650,7 @@ class SeatClient(object):
         def doMoreWork(p):
             try:
                 for _ in range(5):
+                    logging.info("[用户{0}执行重复签到操作]".format(p.profile['username']))
                     p.opener.request(RESERVATIONS,forwardIP=True)
                     time.sleep(2)
                     p.checkStatus(p.opener.request(CHECK_IN,forwardIP=True))

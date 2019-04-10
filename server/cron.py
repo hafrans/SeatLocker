@@ -26,6 +26,10 @@ logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] %(asctime)s - %
 
 resultQueue = TQueue()
 
+"""
+   历史遗留问题太多，业务逻辑与redis型服务器相同，准备删除此库
+"""
+
 
 """
     获取开启抢座的而且有使用点数的

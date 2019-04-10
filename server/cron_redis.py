@@ -220,7 +220,7 @@ def doAutoCheckinWork(serverAddr):
                         targetAmount = 0
                     else:
                         targetAmount -= 1
-                    obj,result = SeatClient.quickCheckin(info['school'],info['auto_checkin'],info['username'],info['password'],info['id'],info['token'],obj)
+                    obj,result = SeatClient.quickCheckin(info['school'],info['auto_checkin'],info['username'],info['password'],info['id'],info['token'],None) #严禁重用对象！
                     if result:
                         localExecuteProxy(server,"insert into log (user,jigann,content,type) values(?,?,?,?)",(info['id'],datetime.today().__str__(),"[{0},{1}]签到成功".format(info['username'],info['school']),10,))
                         localExecuteProxy(server,"update settings set checkin = ? where user = ?",(targetAmount,info['id']))
@@ -288,13 +288,20 @@ def doAutoReserveWork(serverAddr):
         delta = parseDateWithTz(stage_1_time) - getServerTimePRC(SCHOOL(user['school'])['BASE']) #第一阶段时间减去服务器时间。
         logging.info("正在等待至第一阶段进行登录,"+str(delta.days * 86400 + delta.seconds)+"秒...")
         time.sleep(delta.days * 86400 + delta.seconds if delta.days * 86400 + delta.seconds > 0 else 0)
+        loginCount = 0
         while True:
             try:
                 person = SeatClient.NewClient(user['username'],user['password'],campus=CAMPUS(user['school']),school=user['school'])
                 break
             except UserCredentialError as e:
-                logToRemote(server,user,"自动预约失败,登陆异常({0})".format(e),LOG_STATUS_RESERVATION)
-                return
+                if loginCount > 5:
+                    #登录之类的事情都在这里
+                    logToRemote(server,user,"自动预约失败,登陆异常({0})".format(e),LOG_ERR_RESERVATION)
+                    return
+                else:
+                    loginCount += 1
+                    time.sleep(5)
+                    continue
             except Exception as e:
                 logToRemote(server,user,"自动预约失败,其他错误({0})".format(e),LOG_DEBUG_RESERVATION)
                 continue
@@ -347,11 +354,12 @@ def doAutoReserveWork(serverAddr):
                         except UserCredentialError as err:
                                 if loginCount > 5:
                                     #登录之类的事情都在这里
-                                    print("ERROR"+str(err))
+                                    logging.warning("ERROR"+str(err))
                                     logToRemote(server,user,"自动预约失败,登陆异常({0})".format(err.type),LOG_ERR_RESERVATION)
                                     return
                                 else:
                                     loginCount += 1
+                                    time.sleep(0.5)
                                     continue
                         except Exception as err:
                             #可能是网络等问题
@@ -458,11 +466,12 @@ def getAllAutoReservationUserWorker(server):
             cursor = initdb.cursor()
             #获取开通自动占座的用户，
             for i in cursor.execute(SQL_ALL_RESERVATION_PERSON):
+                logging.info("预约座位用户注入："+str(i['user']))
                 _resultBundle = [dict(x) for x in cursor.execute(SQL_ALL_RESERVATION_SEATS,(i['user'],)).fetchall() ] 
                 # logging.info(str(_resultBundle)+threading.current_thread().getName())
                 server.rpush("reserve",pickle.dumps({'seats':_resultBundle,'user':dict(i)}))
             cursor.close()
-            time.sleep(86000)
+            time.sleep(85000)
         except Exception as err:
             logging.error(err)
         finally:

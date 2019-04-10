@@ -10,10 +10,12 @@ ENV APP_HOST=http://seathelper.ml
 
 ENV APP_ORIGIN=ujn.seathelper.ml;lcu.seathelper.ml;ujn.seathelper.ml:8081;lcu.seathelper.ml:8081
 
+ENV REDIS_ADDR=api.seathelper.ml
+
 EXPOSE 5000
 
 VOLUME /app/data/db/
 
 ENTRYPOINT [ "python","-u","init.py"]
 
-CMD ["server","standalone"]
+CMD ["client","api.seathelper.ml"]
