@@ -9,6 +9,8 @@ sys.path.append("..")
 import pytz
 from urllib import request
 from email.utils import parsedate
+from .error import TooQuicklyException 
+import time
 
 
 headers = {
@@ -19,6 +21,8 @@ headers = {
 }
 headers["Access-Control-Allow-Origin"] = os.environ.get("APP_HOST", None) or "http://192.168.123.117:8080"
 
+originAllows = os.environ.get("APP_ORIGIN","").split(";")
+logging.logging.info("USE ALLOWED ORIGINs"+os.environ.get("APP_ORIGIN",""))
 logging.logging.info("Access-Control-Allow-Origin:"+headers["Access-Control-Allow-Origin"])
 
 
@@ -83,3 +87,9 @@ def getServerTimePRC(url):
     utctime = parsedate(rawDatetime)
     rawDatetimeObject = datetime(*utctime[:6])
     return rawDatetimeObject.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone('PRC'))
+
+def freqThreshold(session,key="reqcommon",second = 2):
+    res = session.get(key,0)
+    if time.time() - res <= second:
+        raise TooQuicklyException()
+    session[key] = time.time()

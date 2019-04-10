@@ -6,6 +6,7 @@ import time
 import os
 import sys
 import redis 
+import pickle
 
 sys.path.append("..")
 
@@ -14,17 +15,14 @@ from sqlite3 import Row
 from datetime import datetime
 from threading import Thread
 from seat.__future__ import *
-from queue import Queue as TQueue
 from multiprocessing.dummy import Pool as TPool
 from .premium import PREMIUM_CHECKIN_AUTO, PREMIUM_RESERVE_AUTO
-from multiprocessing.managers import SyncManager,BaseManager
 from .utils import getServerTimePRC, parseDateWithTz
 from multiprocessing import Manager, Process, Pool, Lock, Queue
 
 logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] %(asctime)s - %(message)s")
 
 
-resultQueue = TQueue()
 
 
 """
@@ -98,19 +96,15 @@ SQL_ALL_RESERVATION_SEATS = """
 
 """
 ##################################################################################
-# 远程执行SQL
-def remoteExecute(sqlstr,args):
-    """
-        An interface of remote sql executor.
-    """
-    target = {
-        'sql':sqlstr,
-        'args':args
-    }
-    resultQueue.put(target)
-    pass
 
-def sqlThreadWorker():
+def loggingThreadWorker(server):
+    logging.info("已加载LOG THREAD WORKER"+threading.current_thread().getName())
+    while True:
+        s = server.blpop("logging")
+        logging.info(s[1].decode("UTF-8"))
+
+
+def sqlThreadWorker(server):
     """
         Automatic sql executor using a Thread Queue.
     """
@@ -121,52 +115,49 @@ def sqlThreadWorker():
     while True:
         try:
             cursor = initdb.cursor()
-            info = resultQueue.get()
+            info = pickle.loads(server.blpop("sql")[1])
             cursor.execute(info['sql'],info['args'])
             commit_counter = (commit_counter + 1) % 100
             logging.debug(info)
         except Exception as e:
             logging.error(e)
         finally:
-            if commit_counter % 5 == 0 or resultQueue.empty():
-                logging.info("SQL THREAD WORK 已经执行一次提交"+threading.current_thread().getName())
-                initdb.commit()
+            logging.info("SQL THREAD WORK 已经执行一次提交"+threading.current_thread().getName())
+            initdb.commit()
             cursor.close()
     initdb.close()
 
-def loggme(x):
-    logging.info(x)
 
 ###########################################################################################
 # Main Deploy.
-def deploy(duration=15,processNumber=None):
-    checkinQueue = Manager().Queue(30) #自动位置签到
-    reserveQueue = Manager().Queue()   #自动抢座
-    #分布式服务器（加锁）
-    server = SyncManager(address=('0.0.0.0',56131),authkey=b'13056')
-    server.register("result",callable=remoteExecute)
-    server.register("logging",callable=loggme)
-    server.register("checkin_queue",callable=lambda : checkinQueue)
-    server.register("reserve_queue",callable=lambda : reserveQueue)
-
+def deploy(duration=15,processNumber=None,standalone=False,redis_addr='127.0.0.1'):
+    #REDIS
+    server = redis.Redis(host=redis_addr)
     #deploy the thread workers
-    sqlthread = Thread(target=sqlThreadWorker,name="sql Thread worker")
+    sqlthread = Thread(target=sqlThreadWorker,name="sql Thread worker",args=(server,))
     sqlthread.daemon = True
     sqlthread.start()
 
     # depoly checkin user fetch worker. #队列线程
-    userthread = Thread(target=getAllCheckinUserWorker,args=(checkinQueue,duration,))
+    userthread = Thread(target=getAllCheckinUserWorker,args=(server,duration,))
     userthread.daemon = True
     userthread.start()
 
     #deploy auto reservation fetch worker; #队列线程
-    userthread_reserve = Thread(target=getAllAutoReservationUserWorker,args=(reserveQueue,))
+    userthread_reserve = Thread(target=getAllAutoReservationUserWorker,args=(server,))
     userthread_reserve.daemon = True
     userthread_reserve.start()
 
+    #deploy logging thread
 
-    
-    spawnProcess(processNumber,"127.0.0.1")   
+    loggingthread = Thread(target=loggingThreadWorker,args=(server,))
+    loggingthread.daemon = True
+    loggingthread.start()
+
+    if standalone:
+        spawnProcess(processNumber,redis_addr)
+    else:
+        logging.info("***非独立模式***,只开启服务响应以及服务派发器")    
 
     logging.info("***分布式协作接口开启***")
     logging.info("***Distributed Cooperating Interface is Deployed.*** ")
@@ -176,9 +167,9 @@ def deploy(duration=15,processNumber=None):
     # gc.collect()  
     # ### 打印出对象数目最多的 50 个类型信息  
     # objgraph.show_most_common_types(limit=50)  
-    server.get_server().serve_forever()
+    sqlthread.join()
 
-def spawnProcess(processNumber,address="127.0.0.1"):
+def spawnProcess(processNumber,redis_addr="127.0.0.1"):
     """
        for multiprocess
     """
@@ -189,9 +180,9 @@ def spawnProcess(processNumber,address="127.0.0.1"):
     _fin_n = 2 if processNumber <= 2 else processNumber
     logging.info("use {0} processes".format(processNumber))
     _pool = Pool(processes = _fin_n) #进程池
-    for i in range(_fin_n):
-        _pool.apply_async(doAutoCheckinWork,(address,))
-        _pool.apply_async(doAutoReserveWork,(address,))
+    for _ in range(_fin_n):
+        _pool.apply_async(doAutoCheckinWork,(redis_addr,))
+        _pool.apply_async(doAutoReserveWork,(redis_addr,))
     logging.info("进程部署完毕")
     return _pool
     
@@ -211,14 +202,13 @@ def doAutoCheckinWork(serverAddr):
     try:
         time.sleep(1)
         logging.info("正在连接***"+serverAddr)
-        server = SyncManager(address=(serverAddr,56131),authkey=b'13056')
-        server.connect()
-        server.logging("*** 有外部Work接入啦！")
+        server = redis.Redis(host=serverAddr)
+        server.rpush("logging","*** 有外部Work接入啦！")
+        logging.info("SUCCESS***"+serverAddr)
         obj = None
         while True:
-            _queue = server.checkin_queue()
-            info = _queue.get()
-            server.logging(str(dict(info))+ "=========" + str(os.getpid()))
+            info = pickle.loads(server.blpop("checkin")[1])
+            server.rpush("logging",str(dict(info))+ "=========" + str(os.getpid()))
             try:
                 if CAMPUS_CHECKIN_ENABLED(CAMPUS(info['school'],info['auto_checkin'])):
                     targetAmount = info['checkin']
@@ -243,7 +233,7 @@ def doAutoCheckinWork(serverAddr):
                
             except Exception as e:
                 localExecuteProxy(server,"insert into log (user,jigann,content,type) values(?,?,?,?)",(info['id'],datetime.today().__str__(),"[{0},{1}]签到错误，{2}".format(info['username'],info['school'],e),LOG_ERR_CHECKIN))
-                server.logging(e)
+                server.rpush("logging",str(e))
     except Exception as e:
         print(e)
     finally:
@@ -270,12 +260,11 @@ def doAutoReserveWork(serverAddr):
     stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
     try:
         #连接分布式服务器。
-        server = SyncManager(address=(serverAddr,56131),authkey=b'13056')
-        server.connect()
-        server.logging("***已加载一个分布式自动约座组件进程***"+str(os.getpid()))
+        server = redis.Redis(host=serverAddr)
+        logging.info("SUCCESS***"+serverAddr)
+        server.rpush("logging","***已加载一个分布式自动约座组件进程***"+str(os.getpid()))
     except Exception as e:
         print(e)
-    reserveQueue = server.reserve_queue()
     def doFinished(server,user,seat,person):
         logToRemote(server,user,"已成功预约,{0}".format(seat['name']),LOG_OK_RESERVATION)
         #扣款
@@ -401,7 +390,7 @@ def doAutoReserveWork(serverAddr):
                 
             except UserCredentialError as err:
                 #登录之类的事情都在这里
-                logging.info("ERROR"+str(err))
+                print("ERROR"+str(err))
                 logToRemote(server,user,"自动预约失败,登陆异常({0})".format(err.type),LOG_ERR_RESERVATION)
                 return
             finally:
@@ -415,7 +404,7 @@ def doAutoReserveWork(serverAddr):
     _t_poll = TPool()
     try:
         while True:
-            body = reserveQueue.get()
+            body = pickle.loads(server.blpop("reserve")[1])
             _t_poll.apply_async(process,(body,))
             time.sleep(0.5)
     except Exception as e:
@@ -425,7 +414,7 @@ def doAutoReserveWork(serverAddr):
             
     
 
-def getAllCheckinUserWorker(deployQueue,duration = 30):
+def getAllCheckinUserWorker(server,duration = 30,):
     """
         获取所有学生的信息，注入queue
     """
@@ -441,7 +430,7 @@ def getAllCheckinUserWorker(deployQueue,duration = 30):
         try:
             cursor = initdb.cursor()
             for i in cursor.execute(SQL_ALL_AUTOCHECKIN_PERSON):
-                deployQueue.put(dict(i))
+                server.rpush("checkin",pickle.dumps(dict(i)))
             time.sleep(duration*60)
         except Exception as err:
             logging.error(err)
@@ -450,7 +439,7 @@ def getAllCheckinUserWorker(deployQueue,duration = 30):
             time.sleep(10)
     initdb.close()
 
-def getAllAutoReservationUserWorker(deployQueue):
+def getAllAutoReservationUserWorker(server):
     """
       获取所有 在4点半开始执行。
     """
@@ -471,7 +460,7 @@ def getAllAutoReservationUserWorker(deployQueue):
             for i in cursor.execute(SQL_ALL_RESERVATION_PERSON):
                 _resultBundle = [dict(x) for x in cursor.execute(SQL_ALL_RESERVATION_SEATS,(i['user'],)).fetchall() ] 
                 # logging.info(str(_resultBundle)+threading.current_thread().getName())
-                deployQueue.put({'seats':_resultBundle,'user':dict(i)})
+                server.rpush("reserve",pickle.dumps({'seats':_resultBundle,'user':dict(i)}))
             cursor.close()
             time.sleep(86000)
         except Exception as err:
@@ -479,6 +468,8 @@ def getAllAutoReservationUserWorker(deployQueue):
         finally:
             time.sleep(10)
     initdb.close()
+
+
 
 #####################################################
 # 本地 log 使用本地队列RPC到远端入库
@@ -493,5 +484,10 @@ def localExecuteProxy(server,sqlstr,args):
     """
         待优化
     """
-    server.result(sqlstr,args)
+    payload = {
+        "sql":sqlstr,
+        "args":args
+    }
+    server.rpush("sql",pickle.dumps(payload))
+    # server.blpop()
 

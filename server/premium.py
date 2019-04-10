@@ -17,6 +17,8 @@ PREMIUM_DATES = 0
 PREMIUM_CHECKIN = 1
 PREMIUM_CHECKIN_AUTO = 2
 
+PREMIUM_RESERVE_AUTO = 1
+
 
 class AutoCheckIn(Resource):
     """
@@ -136,7 +138,7 @@ class AutoReserve(Resource):
             settings = cursor.execute(
                 "select * from settings where user = ? ", (p.id,)).fetchone()
             seats = cursor.execute(
-                "select * from seat where user = ? order by priority asc , add_date desc", (p.id,)).fetchall()
+                "select * from seat where user = ? order by priority desc , id asc", (p.id,)).fetchall()
             return returnData(OK, "success", "获取成功", {'config': {'reserve': settings['reserve'],'autoreserve':True if settings['auto_reserve'] else False, 'maximum': PREMIUM_SEATS}, 'seats': [dict(x) for x in seats]})
         finally:
             g.db.commit()

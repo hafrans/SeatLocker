@@ -646,7 +646,7 @@ class SeatClient(object):
         """
         def doMoreWork(p):
             try:
-                for _ in range(3):
+                for _ in range(5):
                     p.opener.request(RESERVATIONS,forwardIP=True)
                     time.sleep(2)
                     p.checkStatus(p.opener.request(CHECK_IN,forwardIP=True))
@@ -658,7 +658,7 @@ class SeatClient(object):
         """
         _tmp_result = self.getReservations()
         if  len(_tmp_result) > 0 and  _tmp_result[0]['status'] == "CHECK_IN":
-            logging.info("已经实现自动签到 %s", self.checkIn)
+            logging.info("已经签到成功，无需再次签到 %s", self.checkIn)
             raise SeatReservationException("已经签到成功，无需再次签到",SeatReservationException.RESERVE_HAVE_CHECKEDIN)
         if  len(_tmp_result) == 0:
             raise SeatReservationException("无可用预约",SeatReservationException.NO_AVAILABLE_RESERVATIONS)

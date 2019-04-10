@@ -9,6 +9,7 @@ import sqlite3
 
 from seat.__future__ import *
 from flask import Flask
+import flask
 from flask import session,abort,g,logging
 from flask_restplus import Resource, Api
 from flask_compress import Compress
@@ -17,8 +18,10 @@ from .account import *
 from .premium import *
 from .utils import headers
 from .premium import *
+from .error import *
 from werkzeug.exceptions import HTTPException
 from sqlite3 import Row
+import urllib
 
 
 
@@ -31,7 +34,7 @@ api = Api(app,doc=False,)
 
 
 app.secret_key = os.urandom(24)
-DATABASE = "./data/sqlite.db"
+DATABASE = "./data/db/sqlite.db"
 DATABASE_INIT_FILE = "./data/init.sql"
 
 
@@ -86,12 +89,14 @@ def test1():
 def apply_caching(response):
     for k,v in headers.items():
         response.headers[k] = v
+    parsed = urllib.parse.urlparse(flask.request.headers.get('Referer',""))
+    if parsed.netloc in originAllows:
+        response.headers["Access-Control-Allow-Origin"] = parsed.scheme +"://"+ parsed.netloc
     return response
 
 
 @app.teardown_request
 def teardown_request(exception):
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     closeDatabase()
 
 
@@ -133,9 +138,9 @@ def SeatNotFoundExceptionHandler(err):
 def RoomNotFoundExceptionHandler(err):
     return returnData(FAILED, 'not login', "房间不存在", None)
 
-# @api.errorhandler(Exception)
-# def ErrorExceptionHandler(err):
-#     return returnData(46001,'failed',str(err),None)
+@api.errorhandler(TooQuicklyException)
+def TooQuicklyExceptionHandler(err):
+    return returnData(FAILED,'failed',"您的请求过快，请稍后再试",None)
 
 # def custom_error(http_status_code, *args, **kwargs):
 #     print(http_status_code)

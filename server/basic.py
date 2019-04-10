@@ -178,6 +178,7 @@ class Checkin(Resource):
         """
             预约
         """
+        freqThreshold(session,"reqcheckin",3)
         if session.get("entity", None) == None:
             raise UserNotLoginError()
         else:

@@ -40,3 +40,6 @@ LOG_DEBUG_RESERVATION = 22
 
 class UserNotLoginError(Exception):
     pass
+
+class TooQuicklyException(Exception):
+    pass
