@@ -356,7 +356,7 @@ def doAutoReserveWork(serverAddr):
                             else:
                                 logToRemote(server,user,"其他错误({0})".format(err.type),LOG_STATUS_RESERVATION)
                         except UserCredentialError as err:
-                                if loginCount > 4:
+                                if loginCount > 5:
                                     #登录之类的事情都在这里
                                     print("ERROR"+str(err))
                                     logToRemote(server,user,"自动预约失败,登陆异常({0})".format(err.type),LOG_ERR_RESERVATION)
