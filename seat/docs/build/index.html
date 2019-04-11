@@ -46,6 +46,16 @@
 <dd></dd></dl>
 
 <dl class="exception">
+<dt id="seat.exception.RoomNotFoundException">
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">RoomNotFoundException</code><a class="reference internal" href="_modules/seat/exception.html#RoomNotFoundException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.RoomNotFoundException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
+<dt id="seat.exception.SeatNotFoundException">
+<em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">SeatNotFoundException</code><a class="reference internal" href="_modules/seat/exception.html#SeatNotFoundException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.SeatNotFoundException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="exception">
 <dt id="seat.exception.SeatReservationException">
 <em class="property">exception </em><code class="descclassname">seat.exception.</code><code class="descname">SeatReservationException</code><span class="sig-paren">(</span><em>message</em>, <em>type=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/exception.html#SeatReservationException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.exception.SeatReservationException" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -142,9 +152,23 @@
 <span class="target" id="module-seat.client"></span><p>Future Features of Seat Client</p>
 <dl class="class">
 <dt id="seat.client.SeatClient">
-<em class="property">class </em><code class="descclassname">seat.client.</code><code class="descname">SeatClient</code><span class="sig-paren">(</span><em>profile={'password'</em>, <em>'username'}</em>, <em>campus=2</em>, <em>autoLogin=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">seat.client.</code><code class="descname">SeatClient</code><span class="sig-paren">(</span><em>profile</em>, <em>campus={'IP': ''</em>, <em>'id': 1</em>, <em>'name': '东校区'}</em>, <em>school='UJN'</em>, <em>autoLogin=True</em>, <em>token=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient" title="Permalink to this definition">¶</a></dt>
 <dd><p>seat client is a virual client api for seat reservation system of ujn.
 It provides lots of methods can book seat and check in</p>
+<dl class="staticmethod">
+<dt id="seat.client.SeatClient.NewClientFromSession">
+<em class="property">static </em><code class="descname">NewClientFromSession</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.NewClientFromSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.NewClientFromSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>helper of initializing instance
+:param session: session of flask.
+:return a instance of SeatClient</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seat.client.SeatClient.cancel">
+<code class="descname">cancel</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.cancel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.cancel" title="Permalink to this definition">¶</a></dt>
+<dd><p>取消预约</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="seat.client.SeatClient.checkIn">
 <code class="descname">checkIn</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.checkIn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.checkIn" title="Permalink to this definition">¶</a></dt>
@@ -158,13 +182,13 @@ It provides lots of methods can book seat and check in</p>
 <em class="property">classmethod </em><code class="descname">deserialize</code><span class="sig-paren">(</span><em>sourceObj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.deserialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.deserialize" title="Permalink to this definition">¶</a></dt>
 <dd><p>deserialize SeatClient instance from json.
 :param sourceObj: json which described details of Seatclient.
-:return an instance of SeatClient.</p>
+:return SeatClient instance</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="seat.client.SeatClient.getHistory">
 <code class="descname">getHistory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getHistory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getHistory" title="Permalink to this definition">¶</a></dt>
-<dd><p>获取</p>
+<dd><p>获取日志记录</p>
 </dd></dl>
 
 <dl class="method">
@@ -259,7 +283,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 
 <dl class="method">
 <dt id="seat.client.SeatClient.getSeatRoomBundle">
-<code class="descname">getSeatRoomBundle</code><span class="sig-paren">(</span><em>roomId</em>, <em>seatId</em>, <em>campus=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getSeatRoomBundle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getSeatRoomBundle" title="Permalink to this definition">¶</a></dt>
+<code class="descname">getSeatRoomBundle</code><span class="sig-paren">(</span><em>roomId</em>, <em>seatId</em>, <em>campus=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.getSeatRoomBundle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.getSeatRoomBundle" title="Permalink to this definition">¶</a></dt>
 <dd><p>using room id and seat id fetch all information about this seat
 :param roomId: roomid
 :param seatid: seatid</p>
@@ -326,6 +350,16 @@ SystemMaintenanceError 系统维护导致失败</dd>
 </dl>
 </dd></dl>
 
+<dl class="staticmethod">
+<dt id="seat.client.SeatClient.quickCheckin">
+<em class="property">static </em><code class="descname">quickCheckin</code><span class="sig-paren">(</span><em>schoolName</em>, <em>campusId</em>, <em>username</em>, <em>password</em>, <em>id</em>, <em>token</em>, <em>sourceObj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.quickCheckin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.quickCheckin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper of autochecking in. this method could reuse instance of object if it could.
+:param schoolName: school name 
+:param campusId: It represented an id of a campus of college of univerisity.</p>
+<blockquote>
+<div>BUG (ME): 当大量执行时，会出现复用异常。</div></blockquote>
+</dd></dl>
+
 <dl class="method">
 <dt id="seat.client.SeatClient.reserveSeat">
 <code class="descname">reserveSeat</code><span class="sig-paren">(</span><em>seatId</em>, <em>startTime=480</em>, <em>endTime=1320</em>, <em>layoutDate=None</em>, <em>tuesdayType=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.reserveSeat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.reserveSeat" title="Permalink to this definition">¶</a></dt>
@@ -372,7 +406,7 @@ SystemMaintenanceError 系统维护导致失败</dd>
 <dl class="method">
 <dt id="seat.client.SeatClient.stop">
 <code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/seat/client.html#SeatClient.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#seat.client.SeatClient.stop" title="Permalink to this definition">¶</a></dt>
-<dd><p>结束预约</p>
+<dd><p>结束使用座位</p>
 </dd></dl>
 
 </dd></dl>

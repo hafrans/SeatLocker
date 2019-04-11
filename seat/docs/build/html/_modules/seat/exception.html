@@ -48,9 +48,17 @@
     <span class="k">pass</span></div>
 
 
+<div class="viewcode-block" id="SeatNotFoundException"><a class="viewcode-back" href="../../index.html#seat.exception.SeatNotFoundException">[docs]</a><span class="k">class</span> <span class="nc">SeatNotFoundException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RoomNotFoundException"><a class="viewcode-back" href="../../index.html#seat.exception.RoomNotFoundException">[docs]</a><span class="k">class</span> <span class="nc">RoomNotFoundException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
 <div class="viewcode-block" id="UserCredentialError"><a class="viewcode-back" href="../../index.html#seat.exception.UserCredentialError">[docs]</a><span class="k">class</span> <span class="nc">UserCredentialError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="n">GENERAL_ERROR</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">TOKEN_EXPIRED</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">USER_LOCKED</span>   <span class="o">=</span> <span class="mi">3</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">message</span><span class="p">,</span><span class="nb">type</span> <span class="o">=</span> <span class="n">GENERAL_ERROR</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="nb">type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
@@ -67,11 +75,30 @@
 
 <div class="viewcode-block" id="SeatReservationException"><a class="viewcode-back" href="../../index.html#seat.exception.SeatReservationException">[docs]</a><span class="k">class</span> <span class="nc">SeatReservationException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 
+    <span class="c1">#预约时段不合法</span>
     <span class="n">TIME_SPAN_ERROR</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">HAVE_RESERVED</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">FAILED_RESERVED</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">NO_AVAILABLE_RESERVATIONS</span> <span class="o">=</span> <span class="mi">3</span>
-    <span class="n">IP_NOT_ALLOWED</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="c1">#已经有一个预约了 </span>
+    <span class="n">HAVE_RESERVED</span> <span class="o">=</span> <span class="mi">1</span> 
+   
+    <span class="n">FAILED_RESERVED</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># 位置被抢</span>
+    <span class="c1"># 无可用预约 </span>
+    <span class="n">NO_AVAILABLE_RESERVATIONS</span> <span class="o">=</span> <span class="mi">3</span> 
+    <span class="c1"># 该IP不允许操作</span>
+    <span class="n">IP_NOT_ALLOWED</span> <span class="o">=</span> <span class="mi">4</span> 
+    <span class="c1">#无效预约</span>
+    <span class="n">RESERVE_CANCEL_INVALIDED</span> <span class="o">=</span> <span class="mi">5</span> 
+    <span class="c1">#预约重复取消</span>
+    <span class="n">RESERVE_HAVE_CANCELED</span> <span class="o">=</span> <span class="mi">6</span> 
+
+    <span class="c1">#预约重复签到</span>
+    <span class="n">RESERVE_HAVE_CHECKEDIN</span> <span class="o">=</span> <span class="mi">8</span>
+
+    <span class="c1">#不在可预约时间</span>
+    <span class="n">NOT_IN_RESERVE_TIME</span> <span class="o">=</span> <span class="mi">7</span>
+
+
+    <span class="c1">#许可证已过期</span>
+    <span class="n">LICENSE_EXPIRED</span> <span class="o">=</span> <span class="mi">100</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">message</span><span class="p">,</span><span class="nb">type</span> <span class="o">=</span> <span class="n">TIME_SPAN_ERROR</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="nb">type</span>
