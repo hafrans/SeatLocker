@@ -24,7 +24,7 @@ copyright = '2019, tensorflower'
 author = 'tensorflower'
 
 # The short X.Y version
-version = ''
+version = '0.2'
 # The full version, including alpha/beta/rc tags
 release = '0.2.3'
 

@@ -485,6 +485,11 @@ class SeatUtility(object):
                         "message": "",
                         "code": "0"
                     }
+
+                    {'status': 'fail', 
+                    'data': None, 
+                    'message': '预约失败，请尽快选择其他时段或座位', 
+                    'code': '1'}
                 """
                 str = """
                 预定成功：

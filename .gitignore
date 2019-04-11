@@ -3,7 +3,9 @@
 .vscode
 __pycache__
 test*.py
-docs/source/*
+docs/source/
 docs/make.bat
 docs/Makefile
 /data
+node_modules
+/client/
