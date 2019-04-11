@@ -19,83 +19,12 @@ from multiprocessing.dummy import Pool as TPool
 from .premium import PREMIUM_CHECKIN_AUTO, PREMIUM_RESERVE_AUTO
 from .utils import getServerTimePRC, parseDateWithTz
 from multiprocessing import Manager, Process, Pool, Lock, Queue
+from redis.exceptions import *
+from .cron.sqls import *
 
 logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] %(asctime)s - %(message)s")
 
 
-
-
-"""
-    获取开启抢座的而且有使用点数的
-"""
-SQL_ALL_AUTOCHECKIN_PERSON = """
-                select
-                    u.id as id,
-                    u.username as username,
-                    u.password as password,
-                    u.token as token,
-                    u.register_time as register_time,
-                    u.priority as priority,
-                    u.school as school,
-                    s.email as email,
-                    s.phone as phone ,
-                    s.checkin as checkin,
-                    s.reserve as reserve,
-                    s.auto_checkin as auto_checkin,
-                    s.random_reserve as random_reserve
-                from users as u inner join settings as s on s.user = u.id where s.auto_checkin > 0 and s.checkin > -2
-                """
-
-"""
-    获取时间段内(julianday('now') > julianday(start_date)  or ( end_date is null and julianday('now') < julianday(end_date)) )
-    并且剩余reserve点数大于-1，而且开启自动抢座
-"""
-SQL_ALL_RESERVATION_PERSON = """
-    select 
-          users.id as id,
-          seat.user as user ,
-          users.username as username,
-          users.password as password,
-          users.school as school,
-          settings.reserve as reserve
-    from 
-          seat 
-    inner join
-          settings
-    on
-          seat.user = settings.user
-    inner join
-          users
-    on    seat.user = users.id and settings.user = users.id
-    where  (
-                julianday('now') > julianday(seat.start_date)  
-                 or  (seat.end_date is null and julianday('now') < julianday(seat.end_date))
-            ) 
-          and settings.reserve != -2 and settings.auto_reserve = 1 
-    group by seat.user
-"""
-SQL_ALL_RESERVATION_SEATS = """
-                select
-                    s.email as email,
-                    s.phone as phone ,
-                    s.reserve as reserve,
-                    s.random_reserve as random_reserve,
-                    s.auto_reserve as auto_reserve,
-                    e.user as user,
-                    e.room as room,
-                    e.seat as seat,
-                    e.name as name,
-                    e.start_time as start_time,
-                    e.end_time as end_time,
-                    e.start_date as start_date,
-                    e.end_date as end_date,
-                    e.priority as priority,
-                    e.tuesday as tuesday
-                from settings as s inner join seat as e on s.user = e.user
-                where (julianday('now') >= julianday(e.start_date)  or ( e.end_date is null and julianday('now') < julianday(e.end_date)) ) and s.reserve != -2 and s.auto_reserve = 1 and e.user = ? order by e.priority desc, e.id asc
-
-"""
-##################################################################################
 
 def loggingThreadWorker(server):
     logging.info("已加载LOG THREAD WORKER"+threading.current_thread().getName())
@@ -103,6 +32,56 @@ def loggingThreadWorker(server):
         s = server.blpop("logging")
         logging.info(s[1].decode("UTF-8"))
 
+def CheckinAffairsThreadWorker(server):
+    """
+        解决checkin的重复扣费问题,
+        成功的话必须走checkinresult通道！
+        Checkin Result Bundle
+        {
+            user:123,
+            id:123,#这里的id指的是选座的id，防止重复扣费用.
+            username:xxx,
+            school:xxx
+        }
+    """
+    logging.info("已加载CheckinAffairs Thread Worker"+threading.current_thread().getName())
+    initdb = sqlite3.connect("data/db/sqlite.db")
+    initdb.row_factory = sqlite3.Row
+    while True:
+        try:
+            cursor = initdb.cursor()
+            info = pickle.loads(server.blpop("checkin_result")[1])
+            logging.info(str(info))
+            result_have_checkin = server.get(str(info['id'])) 
+            result_settings = cursor.execute("select * from settings where user = ? ",(info['user'],)).fetchone()
+            if result_have_checkin == None:
+                logging.info("user"+str(info['user'])+"进行扣款操作")
+                #进行扣款操作
+                lastAmount = result_settings['checkin']
+                if lastAmount == -1:#无限玩家
+                    pass
+                else:
+                    lastAmount = 0 if lastAmount - PREMIUM_CHECKIN_AUTO < 0 else lastAmount - PREMIUM_CHECKIN_AUTO
+                #写入扣款
+                cursor.execute("update settings set checkin = ? where user = ?",(lastAmount,info['user'],))
+                #写入显示log
+                cursor.execute("insert into log (user,jigann,content,type) values(?,?,?,?)",(info['user'],datetime.today().__str__(),"[{0},{1}]签到成功".format(info['username'],info['school']),10,))
+                #写入redis
+                server.set(str(info['id']),"1",ex=7200)
+            else:
+                #写入显示log
+                cursor.execute("insert into log (user,jigann,content,type) values(?,?,?,?)",(info['user'],datetime.today().__str__(),"[{0},{1}]重新签到成功，不扣除点数".format(info['username'],info['school']),10,))
+            logging.debug(info)
+        except redis.exceptions.ConnectionError as e:
+            logging.critical(e)
+            time.sleep(5)
+        except Exception as e:
+            logging.error(e)
+        finally:
+            logging.info("SQL THREAD WORK 已经执行一次提交"+threading.current_thread().getName())
+            initdb.commit()
+            cursor.close()
+    initdb.close()
 
 def sqlThreadWorker(server):
     """
@@ -111,14 +90,15 @@ def sqlThreadWorker(server):
     logging.info("已加载SQL THREAD WORKER"+threading.current_thread().getName())
     initdb = sqlite3.connect("data/db/sqlite.db")
     initdb.row_factory = sqlite3.Row
-    commit_counter = 0
     while True:
         try:
             cursor = initdb.cursor()
             info = pickle.loads(server.blpop("sql")[1])
             cursor.execute(info['sql'],info['args'])
-            commit_counter = (commit_counter + 1) % 100
             logging.debug(info)
+        except redis.exceptions.ConnectionError as e:
+            logging.critical(e)
+            time.sleep(5)
         except Exception as e:
             logging.error(e)
         finally:
@@ -132,7 +112,14 @@ def sqlThreadWorker(server):
 # Main Deploy.
 def deploy(duration=15,processNumber=None,standalone=False,redis_addr='127.0.0.1'):
     #REDIS
-    server = redis.Redis(host=redis_addr)
+    try:
+        server = redis.Redis(host=redis_addr)
+        logging.debug(server.info())
+        logging.info("redis server "+redis_addr+"connected.")
+    except Exception as e:
+        logging.critical(e)
+        logging.critical("服务系统强制退出")
+        exit(2)
     #deploy the thread workers
     sqlthread = Thread(target=sqlThreadWorker,name="sql Thread worker",args=(server,))
     sqlthread.daemon = True
@@ -153,6 +140,11 @@ def deploy(duration=15,processNumber=None,standalone=False,redis_addr='127.0.0.1
     loggingthread = Thread(target=loggingThreadWorker,args=(server,))
     loggingthread.daemon = True
     loggingthread.start()
+
+    #deploy checkinaffairs thread
+    checkinthread = Thread(target=CheckinAffairsThreadWorker,args=(server,))
+    checkinthread.daemon = True
+    checkinthread.start()
 
     if standalone:
         spawnProcess(processNumber,redis_addr)
@@ -211,19 +203,12 @@ def doAutoCheckinWork(serverAddr):
             server.rpush("logging",str(dict(info))+ "=========" + str(os.getpid()))
             try:
                 if CAMPUS_CHECKIN_ENABLED(CAMPUS(info['school'],info['auto_checkin'])):
-                    targetAmount = info['checkin']
-                    if targetAmount == -1:
-                        pass
-                    if targetAmount == -2:
-                        continue
-                    if targetAmount - PREMIUM_CHECKIN_AUTO < 0:#不能低于0 啊否则炸锅了
-                        targetAmount = 0
-                    else:
-                        targetAmount -= 1
                     obj,result = SeatClient.quickCheckin(info['school'],info['auto_checkin'],info['username'],info['password'],info['id'],info['token'],None) #严禁重用对象！
                     if result:
-                        localExecuteProxy(server,"insert into log (user,jigann,content,type) values(?,?,?,?)",(info['id'],datetime.today().__str__(),"[{0},{1}]签到成功".format(info['username'],info['school']),10,))
-                        localExecuteProxy(server,"update settings set checkin = ? where user = ?",(targetAmount,info['id']))
+                        server.rpush("checkin_result",pickle.dumps({'id':result['id'],'user':info['id'],'username':info['username'],'school':info['school']}))
+                        # localExecuteProxy(server,"insert into log (user,jigann,content,type) values(?,?,?,?)",(info['id'],datetime.today().__str__(),"[{0},{1}]签到成功".format(info['username'],info['school']),10,))
+                        # localExecuteProxy(server,"update settings set checkin = ? where user = ?",(targetAmount,info['id']))
+                    time.sleep(3)
             except SeatReservationException as e:
                 #failed
                 if e == SeatReservationException.NO_AVAILABLE_RESERVATIONS or e == SeatReservationException.RESERVE_HAVE_CHECKEDIN:
@@ -253,11 +238,6 @@ def doAutoReserveWork(serverAddr):
     logging.info("正在连接***"+serverAddr)
     time.sleep(1)#wait for server.
     retry_threshold = 500 #最大错误阈值
-    ######
-    # 时间控制
-    #####
-    stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
-    stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
     try:
         #连接分布式服务器。
         server = redis.Redis(host=serverAddr)
@@ -284,6 +264,12 @@ def doAutoReserveWork(serverAddr):
         person = None
         statusOk = False
         #开始第一阶段
+        ######
+        # 时间控制
+        # BUG 修复： 每次创建线程要先做好刷新stage
+        #####
+        stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
+        stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
         logging.info("***{0} process 开始第一阶段！***".format(user['username']))
         delta = parseDateWithTz(stage_1_time) - getServerTimePRC(SCHOOL(user['school'])['BASE']) #第一阶段时间减去服务器时间。
         logging.info("正在等待至第一阶段进行登录,"+str(delta.days * 86400 + delta.seconds)+"秒...")
@@ -294,7 +280,7 @@ def doAutoReserveWork(serverAddr):
                 person = SeatClient.NewClient(user['username'],user['password'],campus=CAMPUS(user['school']),school=user['school'])
                 break
             except UserCredentialError as e:
-                if loginCount > 5:
+                if loginCount > 10:
                     #登录之类的事情都在这里
                     logToRemote(server,user,"自动预约失败,登陆异常({0})".format(e),LOG_ERR_RESERVATION)
                     return
@@ -409,7 +395,7 @@ def doAutoReserveWork(serverAddr):
                 if statusOk:
                     return
     pass  
-    _t_poll = TPool()
+    _t_poll = TPool(processes=100)
     try:
         while True:
             body = pickle.loads(server.blpop("reserve")[1])
@@ -439,6 +425,7 @@ def getAllCheckinUserWorker(server,duration = 30,):
             cursor = initdb.cursor()
             for i in cursor.execute(SQL_ALL_AUTOCHECKIN_PERSON):
                 server.rpush("checkin",pickle.dumps(dict(i)))
+                time.sleep(1)
             time.sleep(duration*60)
         except Exception as err:
             logging.error(err)
@@ -450,6 +437,8 @@ def getAllCheckinUserWorker(server,duration = 30,):
 def getAllAutoReservationUserWorker(server):
     """
       获取所有 在4点半开始执行。
+
+      BUG 在一个游标里面进行execute会爆炸
     """
     logging.info("已加载自动约座。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
     initdb = sqlite3.connect("data/db/sqlite.db") 
@@ -462,16 +451,22 @@ def getAllAutoReservationUserWorker(server):
             else:
                 time.sleep(30)
                 continue
-
+            userList = []
             cursor = initdb.cursor()
             #获取开通自动占座的用户，
             for i in cursor.execute(SQL_ALL_RESERVATION_PERSON):
+                logging.info("__________________________"+str(i['user']))
                 logging.info("预约座位用户注入："+str(i['user']))
-                _resultBundle = [dict(x) for x in cursor.execute(SQL_ALL_RESERVATION_SEATS,(i['user'],)).fetchall() ] 
-                # logging.info(str(_resultBundle)+threading.current_thread().getName())
+                userList.append(i)
+            #获取占座用户的seat
+            for i in userList:
+                _resultBundle = [dict(x) for x in cursor.execute(SQL_ALL_RESERVATION_SEATS,(i['user'],)) ] 
+                logging.info("用户ID{0}获取了{1}个预选座位".format(i['user'],len(_resultBundle))+threading.current_thread().getName())
+                #如果预选座位为空，就跳过
+                if len(_resultBundle) == 0:
+                    continue
                 server.rpush("reserve",pickle.dumps({'seats':_resultBundle,'user':dict(i)}))
             cursor.close()
-            time.sleep(85000)
         except Exception as err:
             logging.error(err)
         finally:

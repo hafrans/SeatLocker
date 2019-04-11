@@ -1,0 +1,10 @@
+"""
+    
+    Coordinator
+
+
+"""
+
+
+def registerClient():
+    pass

@@ -270,8 +270,6 @@ def doAutoReserveWork(serverAddr):
     ######
     # 时间控制
     #####
-    stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
-    stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
     try:
         #连接分布式服务器。
         server = SyncManager(address=(serverAddr,56131),authkey=b'13056')
@@ -293,6 +291,8 @@ def doAutoReserveWork(serverAddr):
     def process(userBody):
         #每人一个小线程，时间耗在IO。
         #肯定len >= 1否则数据库查不出来
+        stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
+        stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
         user = userBody['user'] # 用户信息
         seats = userBody['seats'] # 用户位置
         retry = 0
@@ -416,7 +416,7 @@ def doAutoReserveWork(serverAddr):
                 if statusOk:
                     return
     pass  
-    _t_poll = TPool()
+    _t_poll = TPool(processes=100)
     try:
         while True:
             body = reserveQueue.get()
