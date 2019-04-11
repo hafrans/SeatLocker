@@ -271,6 +271,7 @@ def doAutoReserveWork(serverAddr):
         stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
         stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
         logging.info("***{0} process 开始第一阶段！***".format(user['username']))
+        # time.sleep(1000)
         delta = parseDateWithTz(stage_1_time) - getServerTimePRC(SCHOOL(user['school'])['BASE']) #第一阶段时间减去服务器时间。
         logging.info("正在等待至第一阶段进行登录,"+str(delta.days * 86400 + delta.seconds)+"秒...")
         time.sleep(delta.days * 86400 + delta.seconds if delta.days * 86400 + delta.seconds > 0 else 0)
@@ -395,7 +396,7 @@ def doAutoReserveWork(serverAddr):
                 if statusOk:
                     return
     pass  
-    _t_poll = TPool(processes=100)
+    _t_poll = TPool(processes=200) #注意，以后要扩增多台
     try:
         while True:
             body = pickle.loads(server.blpop("reserve")[1])
@@ -436,26 +437,27 @@ def getAllCheckinUserWorker(server,duration = 30,):
 
 def getAllAutoReservationUserWorker(server):
     """
-      获取所有 在4点半开始执行。
+      获取所有 占座用户 在4点半开始执行。
+      向队列释放用户
 
       BUG 在一个游标里面进行execute会爆炸
     """
     logging.info("已加载自动约座。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
-    initdb = sqlite3.connect("data/db/sqlite.db") 
-    initdb.row_factory = sqlite3.Row
-    logging.info("正在等待数据投放时间（4.30）"+threading.current_thread().getName())
+    
     while True: # 每天一个循环。
         try:
+            logging.info("正在等待数据投放时间（4.30）"+threading.current_thread().getName())
             if datetime.today().hour == 4 and datetime.today().minute == 30:
                 logging.info("启动一次用户约座部署器。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
             else:
                 time.sleep(30)
                 continue
+            initdb = sqlite3.connect("data/db/sqlite.db") #开启数据库
+            initdb.row_factory = sqlite3.Row
             userList = []
             cursor = initdb.cursor()
             #获取开通自动占座的用户，
             for i in cursor.execute(SQL_ALL_RESERVATION_PERSON):
-                logging.info("__________________________"+str(i['user']))
                 logging.info("预约座位用户注入："+str(i['user']))
                 userList.append(i)
             #获取占座用户的seat
@@ -470,8 +472,10 @@ def getAllAutoReservationUserWorker(server):
         except Exception as err:
             logging.error(err)
         finally:
+            logging.info("约座部署器部署完毕。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
             time.sleep(10)
-    initdb.close()
+            initdb.close()
+   
 
 
 
