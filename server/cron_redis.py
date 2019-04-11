@@ -443,10 +443,9 @@ def getAllAutoReservationUserWorker(server):
       BUG 在一个游标里面进行execute会爆炸
     """
     logging.info("已加载自动约座。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
-    
+    logging.info("正在等待数据投放时间（4.30）"+threading.current_thread().getName())
     while True: # 每天一个循环。
         try:
-            logging.info("正在等待数据投放时间（4.30）"+threading.current_thread().getName())
             if datetime.today().hour == 4 and datetime.today().minute == 30:
                 logging.info("启动一次用户约座部署器。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
             else:
@@ -468,13 +467,13 @@ def getAllAutoReservationUserWorker(server):
                 if len(_resultBundle) == 0:
                     continue
                 server.rpush("reserve",pickle.dumps({'seats':_resultBundle,'user':dict(i)}))
+                logging.info("约座部署器部署完毕。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
             cursor.close()
+            initdb.close()
+            time.sleep(3600) #防止重复部署
         except Exception as err:
             logging.error(err)
-        finally:
-            logging.info("约座部署器部署完毕。GET ALL USER RESERVATION WORKER"+threading.current_thread().getName())
-            time.sleep(10)
-            initdb.close()
+            
    
 
 
