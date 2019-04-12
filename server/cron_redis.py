@@ -226,7 +226,7 @@ def doAutoCheckinWork(serverAddr):
 
 def doAutoReserveWork(serverAddr):
     """
-        执行占座任务 4点55登录，4.58开始预约
+        执行占座任务 4点55登录，4.56开始预约
     """
     ##使用协程gevent 库 废弃，对这个不友好！
     # import gevent
@@ -269,7 +269,7 @@ def doAutoReserveWork(serverAddr):
         # BUG 修复： 每次创建线程要先做好刷新stage
         #####
         stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
-        stage_2_time = datetime.today().replace(hour=4,minute=59,second=58) #抢座时间
+        stage_2_time = datetime.today().replace(hour=4,minute=59,second=57) #抢座时间
         logging.info("***{0} process 开始第一阶段！***".format(user['username']))
         # time.sleep(1000)
         delta = parseDateWithTz(stage_1_time) - getServerTimePRC(SCHOOL(user['school'])['BASE']) #第一阶段时间减去服务器时间。

@@ -22,7 +22,11 @@ SQL_ALL_AUTOCHECKIN_PERSON = """
                 """
 
 """
-    获取时间段内(julianday('now') > julianday(start_date)  or ( end_date is null and julianday('now') < julianday(end_date)) )
+    获取时间段内
+     (
+        julianday(datetime('now','localtime')) >= julianday(start_date) and julianday(datetime('now','localtime')) <= julianday(end_date) 
+        or julianday(datetime('now','localtime')) >= julianday(start_date) and end_date is null
+        ) 
     并且剩余reserve点数大于-1，而且开启自动抢座
 """
 SQL_ALL_RESERVATION_PERSON = """
@@ -43,9 +47,9 @@ SQL_ALL_RESERVATION_PERSON = """
           users
     on    seat.user = users.id and settings.user = users.id
     where  (
-                julianday('now') >= julianday(seat.start_date)  
-                 or  (seat.end_date is null and julianday('now') < julianday(seat.end_date))
-            ) 
+        julianday(datetime('now','localtime')) >= julianday(start_date) and julianday(datetime('now','localtime')) <= julianday(end_date) 
+        or julianday(datetime('now','localtime')) >= julianday(start_date) and end_date is null
+        ) 
           and settings.reserve != -2 and settings.auto_reserve = 1 
     group by seat.user
 """
@@ -70,6 +74,10 @@ SQL_ALL_RESERVATION_SEATS = """
                     e.priority as priority,
                     e.tuesday as tuesday
                 from settings as s inner join seat as e on s.user = e.user
-                where (julianday('now') >= julianday(e.start_date)  or ( e.end_date is null and julianday('now') < julianday(e.end_date)) ) and s.reserve != -2 and s.auto_reserve = 1 and e.user = ? order by e.priority desc, e.id asc
+                where (
+                    julianday(datetime('now','localtime')) >= julianday(start_date) and julianday(datetime('now','localtime')) <= julianday(end_date) 
+                    or julianday(datetime('now','localtime')) >= julianday(start_date) and end_date is null
+                    ) 
+                    and s.reserve != -2 and s.auto_reserve = 1 and e.user = ? order by e.priority desc, e.id asc
 
 """

@@ -207,7 +207,7 @@ class AutoReserve(Resource):
 
             # 检测是否被用,自己用的话会提示不可重复选座
             seats = cursor.execute(
-                "select * from seat where seat = ? and (julianday('now') >= julianday(start_date) and julianday('now') <= julianday(end_date) or julianday('now') >= julianday(start_date) and end_date is null)", (args['seat'],)).fetchone()
+                "select * from seat where seat = ? and (julianday(datetime('now','localtime')) >= julianday(start_date) and julianday(datetime('now','localtime')) <= julianday(end_date) or julianday(datetime('now','localtime')) >= julianday(start_date) and end_date is null)", (args['seat'],)).fetchone()
             if seats != None:
                 if seats['user'] == p.id:
                     return returnData(FAILED, "failed", "您申请为位置有重复", None)
