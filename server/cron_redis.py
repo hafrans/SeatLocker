@@ -418,7 +418,7 @@ def getAllCheckinUserWorker(server,duration = 30,):
     initdb = sqlite3.connect("data/db/sqlite.db") 
     initdb.row_factory = sqlite3.Row
     while True:
-        if datetime.today().hour > 22 or datetime.today() < datetime.today().replace(hour=6,minute=45):
+        if datetime.today().hour >= 22 or datetime.today() < datetime.today().replace(hour=6,minute=45):
             time.sleep(60)
             continue
         logging.info(threading.current_thread().getName()+"执行一次用户抓取用于签到")

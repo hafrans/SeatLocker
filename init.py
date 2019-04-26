@@ -3,22 +3,36 @@ import sys
 import os
 sys.path.append(".")
 from server import *
+import threading
 from server.utils import *
 
 # from seat.__future__ import *
 
 if __name__ == "__main__":
+    strs = """
+    
+    ##TENSORFLOWER 
+   
+      VERSION：0.7.6
+
+      LAST UPDATED：2019-04-12：10：04
+    ###
+
+    """
+    print(strs)
     envaddr = os.environ.get("REDIS_ADDR",None)
     if len(sys.argv) > 1:
         if sys.argv[1] == "server":
             if len(sys.argv) >= 3:
                 if sys.argv[2] == "standalone":
                     print("使用单例服务！")
-                    from server.cron import *
-                    multiprocessing.freeze_support() 
-                    t2 = threading.Thread(target=deploy)
-                    t2.daemon=True
-                    t2.start()
+                    print("WARNING : STANDALONE MODE IS DEPRECATED. PLEASE USE SERVERCLIENT INSTEAD.")
+                    # from server.cron import *
+                    # multiprocessing.freeze_support() 
+                    # t2 = threading.Thread(target=deploy)
+                    # t2.daemon=True
+                    # t2.start()
+                    exit(0)
                 elif sys.argv[2] == "serveronly":
                     from server.cron_redis import *
                     if len(sys.argv) >= 4:
