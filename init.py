@@ -13,9 +13,9 @@ if __name__ == "__main__":
     
     ##TENSORFLOWER 
    
-      VERSION：0.7.6
+      VERSION：0.8.0
 
-      LAST UPDATED：2019-04-12：10：04
+      LAST UPDATED：2019-05-08 22：04
     ###
 
     """

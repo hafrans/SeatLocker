@@ -13,6 +13,9 @@ import logging
 import json
 from .exception import NetWorkException
 from .constant import *
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class WrappedRequest(object):
     """
@@ -38,9 +41,23 @@ class WrappedRequest(object):
     __default_headers_template = {
         "Host": "",
         "Connection": "Keep-Alive",
-        "User-Agent": "",
+        "User-Agent": "Dart/2.1 (dart:io)",
         "token": "",
         "Accept-Encoding":"gzip, deflate",
+        
+    }
+
+    #通过中间人方式察觉不会限定域名
+
+    __hmac__post = {
+        "x-hmac-request-key":"8d971a4677e59e5eaa431e5574e3d87653dbacb7aa971f37457c7b85f2733141",
+        "x-request-date":"1557321743444",
+        "x-request-id":"50b1d140-5970-11e9-e085-bfcd8b9885ce"
+    }
+    __hmac__get = {
+        "x-hmac-request-key":"98f57220ff2ff6b6b8a649ddeaf2e0b3e769b80d8cccf8cd033d03d3b4b4df06",
+        "x-request-date":"1557318781401",
+        "x-request-id":"6b2dec90-5970-11e9-c230-298b962fbba2"
     }
 
     def __init__(self, campus,school):
@@ -117,7 +134,10 @@ class WrappedRequest(object):
             _data = self.urlencode(payload)
 
         if post != None:
+            self.headers.update(WrappedRequest.__hmac__post)
             _post = str.encode(self.urlencode(post), encoding='UTF-8')
+        else:
+            self.headers.update(WrappedRequest.__hmac__get)
 
         if forwardIP == True:
             # logging.debug("USING FORWARD HEAD")

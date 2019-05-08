@@ -267,9 +267,28 @@ def doAutoReserveWork(serverAddr):
         ######
         # 时间控制
         # BUG 修复： 每次创建线程要先做好刷新stage
-        #####
-        stage_1_time = datetime.today().replace(hour=4,minute=55,second=0) #登录时间
-        stage_2_time = datetime.today().replace(hour=4,minute=59,second=57) #抢座时间
+        
+        #根据不同学校做出不同决策
+
+        hour, minute = SCHOOL_START_BOOK(user['school']) #获取这个学校的开始预约时间
+        
+        st1_hour = st2_hour = hour
+
+        if minute < 5:
+            st1_hour = hour - 1
+            st2_hour = hour
+
+        if minute < 1:
+            st2_hour = hour - 1
+        
+        st1_min = (minute - 5) % 60
+        st2_min = (minute - 1) % 60
+        
+        stage_1_time = datetime.today().replace(hour=st1_hour, minute=st1_min, second=0) #登录时间
+        stage_2_time = datetime.today().replace(hour=st2_hour, minute=st2_min, second=57) #抢座时间
+        print(stage_1_time,stage_2_time)
+        
+        ############################################
         logging.info("***{0} process 开始第一阶段！***".format(user['username']))
         # time.sleep(1000)
         delta = parseDateWithTz(stage_1_time) - getServerTimePRC(SCHOOL(user['school'])['BASE']) #第一阶段时间减去服务器时间。
